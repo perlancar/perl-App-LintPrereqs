@@ -1,0 +1,64 @@
+NAME
+    App::LintPrereqs - Check extraneous/missing prerequisites in dist.ini
+
+VERSION
+    version 0.01
+
+SYNOPSIS
+     # Use via lint-prereqs CLI script
+
+DESCRIPTION
+    This module has Rinci metadata.
+
+FUNCTIONS
+    None are exported by default, but they are exportable.
+
+  lint_prereqs(%args) -> [status, msg, result, meta]
+    Check extraneous/missing prerequisites in dist.ini.
+
+    Check [Prereqs / *] sections in your dist.ini against what's actually
+    being used in your Perl code (using Perl::PrereqScanner) and what's in
+    Perl core list of modules. Will complain if your prereqs is not actually
+    used, or already in Perl core. Will also complain if there are missing
+    prereqs.
+
+    Designed to work with prereqs that are manually written. Does not work
+    if you use AutoPrereqs.
+
+    Configuration:
+
+    *   [Extras / lint-prereqs / assume-used]
+
+    These are prerequisites that you know are used but can't be detected by
+    scan_prereqs. Or prerequisites that you want to include anyway.
+
+    *   [Extras / lint-prereqs / assume-provided]
+
+    These can be used to list prerequisites that are detected by
+    scan_prereqs, but you know are already provided by some other modules.
+    So to make lint-prereqs pass, include them here.
+
+    Arguments ('*' denotes required arguments):
+
+    *   default_perl_version => *str* (default: "5.010000")
+
+        Perl version to use when unspecified.
+
+    Return value:
+
+    Returns an enveloped result (an array). First element (status) is an
+    integer containing HTTP status code (200 means OK, 4xx caller error, 5xx
+    function error). Second element (msg) is a string containing error
+    message, or 'OK' if status is 200. Third element (result) is optional,
+    the actual result. Fourth element (meta) is called result metadata and
+    is optional, a hash that contains extra information.
+
+AUTHOR
+    Steven Haryanto <stevenharyanto@gmail.com>
+
+COPYRIGHT AND LICENSE
+    This software is copyright (c) 2012 by Steven Haryanto.
+
+    This is free software; you can redistribute it and/or modify it under
+    the same terms as the Perl 5 programming language system itself.
+
