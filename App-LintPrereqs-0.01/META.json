@@ -29,7 +29,6 @@
             "Config::IniFiles" : 0,
             "File::Which" : 0,
             "Log::Any" : 0,
-            "Module::CoreList" : 0,
             "Perinci::CmdLine" : 0,
             "Perl::PrereqScanner" : 0,
             "Sort::Versions" : 0,
@@ -41,7 +40,7 @@
    "resources" : {
       "homepage" : "http://metacpan.org/dist/App-LintPrereqs",
       "repository" : {
-         "url" : "http://github.com/sharyanto/perl-Lint-Prereqs"
+         "url" : "http://github.com/sharyanto/perl-App-LintPrereqs"
       }
    },
    "version" : "0.01"

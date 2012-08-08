@@ -26,7 +26,6 @@ my %module_build_args = (
     "Config::IniFiles" => 0,
     "File::Which" => 0,
     "Log::Any" => 0,
-    "Module::CoreList" => 0,
     "Perinci::CmdLine" => 0,
     "Perl::PrereqScanner" => 0,
     "Sort::Versions" => 0,

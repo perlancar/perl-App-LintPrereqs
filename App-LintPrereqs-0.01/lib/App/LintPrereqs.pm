@@ -192,69 +192,6 @@ version 0.01
 
  # Use via lint-prereqs CLI script
 
-=head1 DESCRIPTION
-
-
-This module has L<Rinci> metadata.
-
-=head1 FUNCTIONS
-
-
-None are exported by default, but they are exportable.
-
-=head2 lint_prereqs(%args) -> [status, msg, result, meta]
-
-Check extraneous/missing prerequisites in dist.ini.
-
-Check [Prereqs / *] sections in your dist.ini against what's actually being used
-in your Perl code (using Perl::PrereqScanner) and what's in Perl core list of
-modules. Will complain if your prereqs is not actually used, or already in Perl
-core. Will also complain if there are missing prereqs.
-
-Designed to work with prereqs that are manually written. Does not work if you
-use AutoPrereqs.
-
-Configuration:
-
-=over
-
-=item *
-
-[Extras / lint-prereqs / assume-used]
-
-
-=back
-
-These are prerequisites that you know are used but can't be detected by
-scan_prereqs. Or prerequisites that you want to include anyway.
-
-=over
-
-=item *
-
-[Extras / lint-prereqs / assume-provided]
-
-
-=back
-
-These can be used to list prerequisites that are detected by scan_prereqs, but
-you know are already provided by some other modules. So to make lint-prereqs
-pass, include them here.
-
-Arguments ('*' denotes required arguments):
-
-=over 4
-
-=item * B<default_perl_version> => I<str> (default: "5.010000")
-
-Perl version to use when unspecified.
-
-=back
-
-Return value:
-
-Returns an enveloped result (an array). First element (status) is an integer containing HTTP status code (200 means OK, 4xx caller error, 5xx function error). Second element (msg) is a string containing error message, or 'OK' if status is 200. Third element (result) is optional, the actual result. Fourth element (meta) is called result metadata and is optional, a hash that contains extra information.
-
 =head1 AUTHOR
 
 Steven Haryanto <stevenharyanto@gmail.com>
