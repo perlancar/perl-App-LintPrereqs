@@ -56,7 +56,7 @@ sub lint_prereqs {
 
     (-f "dist.ini")
         or return [412, "No dist.ini found, ".
-                       "is your repo managed by Dist::Zilla?"];
+                       "is your dist managed by Dist::Zilla?"];
 
     my $cfg = Config::IniFiles->new(-file => "dist.ini", -fallback => "ALL");
     $cfg or return [
