@@ -75,11 +75,11 @@ sub lint_prereqs {
         for my $param ($cfg->Parameters($section)) {
             my $v   = $cfg->val($section, $param);
             my $cmt = $cfg->GetParameterComment($section, $param) // "";
-            #$log->tracef("section=$section, param=$param, v=$v");
+            #$log->tracef("section=$section, param=$param, v=$v, cmt=$cmt");
             $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
             $assume_provided{$param} = $v if     $section =~ /assume-provided/;
             $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
-                $cmt =~ /^!lint-prereqs\s+assume-used\b/;
+                $cmt =~ /^;!lint-prereqs\s+assume-used\b/;
         }
     }
     $log->tracef("mods_from_ini: %s", \%mods_from_ini);
