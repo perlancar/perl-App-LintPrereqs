@@ -79,7 +79,7 @@ sub lint_prereqs {
             $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
             $assume_provided{$param} = $v if     $section =~ /assume-provided/;
             $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
-                $cmt =~ /^;!lint-prereqs\s+assume-used\b/;
+                $cmt =~ /^;!lint-prereqs\s+assume-used\b/m;
         }
     }
     $log->tracef("mods_from_ini: %s", \%mods_from_ini);
