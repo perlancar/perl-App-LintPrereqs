@@ -24,7 +24,7 @@ $SPEC{lint_prereqs} = {
 
 Check [Prereqs / *] sections in your dist.ini against what's actually being used
 in your Perl code (using Perl::PrereqScanner) and what's in Perl core list of
-modules. Will complain if your prereqs is not actually used, or already in Perl
+modules. Will complain if your prereqs are not actually used, or already in Perl
 core. Will also complain if there are missing prereqs.
 
 Designed to work with prereqs that are manually written. Does not work if you
