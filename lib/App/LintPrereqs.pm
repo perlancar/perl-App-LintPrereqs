@@ -30,18 +30,21 @@ core. Will also complain if there are missing prereqs.
 Designed to work with prereqs that are manually written. Does not work if you
 use AutoPrereqs.
 
-Configuration:
+Sometimes there are prerequisites that you know are used but can't be detected
+by scan_prereqs, or you want to include anyway. If this is the case, you can
+instruct lint_prereqs to assume the prerequisite is used.
 
-* [Extras / lint-prereqs / assume-used]
+    ;!lint-prereqs assume-used # even though we know it is not currently used
+    Foo::Bar=0
+    ;!lint-prereqs assume-used # we are forcing a certain version
+    Baz=0.12
 
-These are prerequisites that you know are used but can't be detected by
-scan_prereqs. Or prerequisites that you want to include anyway.
-
-* [Extras / lint-prereqs / assume-provided]
-
-These can be used to list prerequisites that are detected by scan_prereqs, but
+Sometimes there are also prerequisites that are detected by scan_prereqs, but
 you know are already provided by some other modules. So to make lint-prereqs
-pass, include them here.
+ignore them:
+
+    [Extras / lint-prereqs / assume-provided]
+    Qux::Quux=0
 
 _
     args => {
@@ -63,31 +66,25 @@ sub lint_prereqs {
         500, "Can't open dist.ini: ".join(", ", @Config::IniFiles::errors)];
 
     my %mods_from_ini;
+    my %assume_used;
+    my %assume_provided;
     for my $section (grep {
-        m!^(prereqs|extras \s*/\s* lint[_-]prereqs \s*/\s* assume-provided)!ix}
+        m!^(prereqs|extras \s*/\s* lint[_-]prereqs \s*/\s*
+              assume-(?:provided|used))!ix}
                          $cfg->Sections) {
         for my $param ($cfg->Parameters($section)) {
-            my $v = $cfg->val($section, $param);
+            my $v   = $cfg->val($section, $param);
+            my $cmt = $cfg->GetParameterComment($section, $param) // "";
             #$log->tracef("section=$section, param=$param, v=$v");
-            $mods_from_ini{$param} = $v;
+            $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
+            $assume_provided{$param} = $v if     $section =~ /assume-provided/;
+            $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
+                $cmt =~ /^!lint-prereqs\s+assume-used\b/;
         }
     }
     $log->tracef("mods_from_ini: %s", \%mods_from_ini);
-
-    # this module is required, says dist.ini, and that's it. even when prereq
-    # scanner says it's not used. examples are for forcing deps to spec dists
-    # like Rinci or Setup.
-    my %extra_mods_from_ini;
-    for my $section (grep {
-        m!^extras \s*/\s* lint[_-]prereqs \s*/\s* assume-used!ix}
-                         $cfg->Sections) {
-        for my $param ($cfg->Parameters($section)) {
-            my $v = $cfg->val($section, $param);
-            #$log->tracef("section=$section, param=$param, v=$v");
-            $extra_mods_from_ini{$param} = $v;
-        }
-    }
-    $log->tracef("extra_mods_from_ini: %s", \%extra_mods_from_ini);
+    $log->tracef("assume_used: %s", \%assume_used);
+    $log->tracef("assume_provided: %s", \%assume_provided);
 
     # assume package names from filenames, should be better and scan using PPI
     my %pkgs;
@@ -148,7 +145,7 @@ sub lint_prereqs {
             $err++;
         }
         unless (exists($mods_from_scanned{$mod}) ||
-                    exists($extra_mods_from_ini{$mod})) {
+                    exists($assume_used{$mod})) {
             $log->warnf("Module doesn't seem to be used, ".
                             "but mentioned in dist.ini: %s", $mod);
             $err++;
@@ -160,7 +157,8 @@ sub lint_prereqs {
         $log->tracef("Checking mod from scanned: %s", $mod);
         next if exists $core_mods{$mod}; # XXX check version
         next if exists $pkgs{$mod};
-        unless (exists $mods_from_ini{$mod}) {
+        unless (exists($mods_from_ini{$mod}) ||
+                    exists($assume_provided{$mod})) {
             $log->errorf("Module is used, but not mentioned in dist.ini: %s",
                          $mod);
             $err++;
