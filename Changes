@@ -1,5 +1,14 @@
 Revision history for App-LintPrereqs
 
+0.02    2012-08-09 (SHARYANTO)
+
+        [ENHANCEMENTS]
+
+        - Read '!lint-prereqs assume-used' directive in comment, to avoid having
+          to listing modules again in [Extras / lint-prereqs / assume-used]
+          section.
+
+
 0.01    2012-08-08 (SHARYANTO)
 
         First release.
