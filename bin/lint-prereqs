@@ -12,3 +12,23 @@ Perinci::CmdLine->new(url => '/App/LintPrereqs/lint_prereqs')->run;
 
 # ABSTRACT: Check extraneous/missing prerequisites in dist.ini
 # PODNAME: lint-prereqs
+
+=head1 SYNOPSIS
+
+To use, run the program on your top-level distribution dir, where C<dist.ini> is
+located.
+
+ % cd Your-Module
+ % lint-prereqs
+
+On success, nothing will be output.
+
+On errors, error messages will be printed, for example:
+
+ [455] Module doesn't seem to be used, but mentioned in dist.ini: Foo
+ [456] Module is used, but not mentioned in dist.ini: Perinci::CmdLine
+ ERROR 500: Extraneous/missing dependencies
+
+To customize, see L<App::LintPrereqs>.
+
+=cut
