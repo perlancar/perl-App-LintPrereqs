@@ -134,21 +134,19 @@ sub lint_prereqs {
         $core_mods{$1} = $2 // 0;
     }
 
-    my $err;
-
+    my @errs;
     for my $mod (keys %mods_from_ini) {
         next if $mod eq 'perl';
         $log->tracef("Checking mod from dist.ini: %s", $mod);
         if (exists($core_mods{$mod}) &&
                 versioncmp($core_mods{$mod}, $mods_from_ini{$mod}) >= 0) {
-            $log->warnf("Module is core, but mentioned in dist.ini: %s", $mod);
-            $err++;
+            push @errs, {
+                module=>$mod, message=>"Core but mentioned"};
         }
         unless (exists($mods_from_scanned{$mod}) ||
                     exists($assume_used{$mod})) {
-            $log->warnf("Module doesn't seem to be used, ".
-                            "but mentioned in dist.ini: %s", $mod);
-            $err++;
+            push @errs, {
+                module=>$mod, message=>"Unused but mentioned"};
         }
     }
 
@@ -159,16 +157,13 @@ sub lint_prereqs {
         next if exists $pkgs{$mod};
         unless (exists($mods_from_ini{$mod}) ||
                     exists($assume_provided{$mod})) {
-            $log->errorf("Module is used, but not mentioned in dist.ini: %s",
-                         $mod);
-            $err++;
+            push @errs, {
+                module=>$mod, message=>"Used but not mentioned"};
         }
     }
 
-    $err ?
-        [500, "Extraneous/missing dependencies", undef,
-         {"cmdline.display_result"=>0}] :
-            [200, "OK"];
+    [200, @errs ? "Extraneous/missing dependencies" : "OK", \@errs,
+     {"cmdline.exit_code" => @errs ? 1:0}];
 }
 
 1;
