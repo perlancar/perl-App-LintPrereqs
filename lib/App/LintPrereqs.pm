@@ -146,7 +146,8 @@ sub lint_prereqs {
         unless (exists($mods_from_scanned{$mod}) ||
                     exists($assume_used{$mod})) {
             push @errs, {
-                module=>$mod, message=>"Unused but mentioned"};
+                module  => $mod,
+                message => "Unused but listed in dist.ini"};
         }
     }
 
@@ -158,7 +159,8 @@ sub lint_prereqs {
         unless (exists($mods_from_ini{$mod}) ||
                     exists($assume_provided{$mod})) {
             push @errs, {
-                module=>$mod, message=>"Used but not mentioned"};
+                module  => $mod,
+                message => "Used but not listed in dist.ini"};
         }
     }
 
