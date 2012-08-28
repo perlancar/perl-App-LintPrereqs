@@ -165,7 +165,7 @@ sub lint_prereqs {
     }
 
     [200, @errs ? "Extraneous/missing dependencies" : "OK", \@errs,
-     {"cmdline.exit_code" => @errs ? 1:0}];
+     {"cmdline.exit_code" => @errs ? 200:0}];
 }
 
 1;
