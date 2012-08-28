@@ -1,5 +1,10 @@
 Revision history for App-LintPrereqs
 
+0.05    2012-08-28 (SHARYANTO)
+
+        Return detailed result, for scriptability.
+
+
 0.04    2012-08-09 (SHARYANTO)
 
         Fix regex again. D'oh.
