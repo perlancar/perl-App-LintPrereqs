@@ -141,12 +141,15 @@ sub lint_prereqs {
         if (exists($core_mods{$mod}) &&
                 versioncmp($core_mods{$mod}, $mods_from_ini{$mod}) >= 0) {
             push @errs, {
-                module=>$mod, message=>"Core but mentioned"};
+                module  => $mod,
+                version => $mods_from_ini{$mod},
+                message => "Core but mentioned"};
         }
         unless (exists($mods_from_scanned{$mod}) ||
                     exists($assume_used{$mod})) {
             push @errs, {
                 module  => $mod,
+                version => $mods_from_ini{$mod},
                 message => "Unused but listed in dist.ini"};
         }
     }
@@ -160,6 +163,7 @@ sub lint_prereqs {
                     exists($assume_provided{$mod})) {
             push @errs, {
                 module  => $mod,
+                version => $mods_from_scanned{$mod},
                 message => "Used but not listed in dist.ini"};
         }
     }
