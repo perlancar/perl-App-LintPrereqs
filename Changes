@@ -1,5 +1,10 @@
 Revision history for App-LintPrereqs
 
+0.07    2012-08-29 (SHARYANTO)
+
+        Show version information in result.
+
+
 0.06    2012-08-28 (SHARYANTO)
 
         No functional changes. Tweak exit code and error message.
