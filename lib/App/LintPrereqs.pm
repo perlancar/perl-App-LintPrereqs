@@ -120,6 +120,8 @@ sub lint_prereqs {
     $log->tracef("mods_from_scanned: %s", \%mods_from_scanned);
 
     my $perlv = $mods_from_ini{perl} // $mods_from_scanned{perl} // '5.010000';
+    return [400, "Invalid syntax in perl version: $perlv"]
+        unless $perlv =~ /\A\d+(\.\d+)*\z/;
 
     my %core_mods;
     my $clpath = which("corelist")
