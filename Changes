@@ -1,5 +1,11 @@
 Revision history for App-LintPrereqs
 
+0.08    2012-10-04 (SHARYANTO)
+
+        No functional changes. Check perl version and the success status of
+        corelist. Tweak error message.
+
+
 0.07    2012-08-29 (SHARYANTO)
 
         Show version information in result.
