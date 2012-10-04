@@ -143,7 +143,7 @@ sub lint_prereqs {
             push @errs, {
                 module  => $mod,
                 version => $mods_from_ini{$mod},
-                message => "Core but mentioned"};
+                message => "Core since perl $perlv but mentioned"};
         }
         unless (exists($mods_from_scanned{$mod}) ||
                     exists($assume_used{$mod})) {
