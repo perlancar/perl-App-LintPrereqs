@@ -124,7 +124,14 @@ sub lint_prereqs {
     my %core_mods;
     my $clpath = which("corelist")
         or return [412, "Can't find corelist in PATH"];
-    for (`$clpath -v $perlv`) {
+    my @clout = `corelist -v $perlv`;
+    if ($?) {
+        my $clout = join "", @clout;
+        return [400, "corelist doesn't recognize perl version $perlv"]
+            if $clout =~ /has no info on perl /;
+        return [500, "Can't execute corelist command successfully"];
+    }
+    for (@clout) {
         chomp;
         /^([\w:]+)(?:\s+(\S+))?\s*$/ or next;
         #do {
