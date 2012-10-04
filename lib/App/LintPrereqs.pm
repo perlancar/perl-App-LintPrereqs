@@ -133,6 +133,7 @@ sub lint_prereqs {
         #};
         $core_mods{$1} = $2 // 0;
     }
+    $log->tracef("core modules in perl $perlv: %s", \%core_mods);
 
     my @errs;
     for my $mod (keys %mods_from_ini) {
