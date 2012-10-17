@@ -93,9 +93,10 @@ sub lint_prereqs {
         wanted => sub {
             return unless /\.pm$/;
             my $pkg = $File::Find::dir;
-            $pkg =~ s!^lib/!!;
+            #$log->errorf("TMP:pkg=%s",$pkg);
+            $pkg =~ s!^lib/?!!;
             $pkg =~ s!/!::!g;
-            $pkg .= "::$_";
+            $pkg .= (length($pkg) ? "::" : "") . $_;
             $pkg =~ s/\.pm$//;
             $pkgs{$pkg}++;
         },
