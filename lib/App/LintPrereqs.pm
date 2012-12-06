@@ -53,6 +53,9 @@ _
             summary => 'Perl version to use when unspecified',
         },
     },
+    deps => {
+        prog => 'scan_prereqs',
+    },
 };
 sub lint_prereqs {
     my %args = @_;
@@ -104,8 +107,7 @@ sub lint_prereqs {
     $log->tracef("Packages: %s", \%pkgs);
 
     my %mods_from_scanned;
-    my $sppath = which("scan_prereqs")
-        or return [412, "Can't find scan_prereqs in PATH"];
+    my $sppath = "scan_prereqs";
     my $spcmd = "$sppath --combine .";
     $spcmd .= " t/*.t" if <t/*.t>;
     $spcmd .= " bin/*" if <bin/*>;
