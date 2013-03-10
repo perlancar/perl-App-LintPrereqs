@@ -187,6 +187,14 @@ sub lint_prereqs {
                 version => $mods_from_ini{$mod},
                 message => "Core in perl $perlv but mentioned"};
         }
+        if (exists $mods_from_scanned{$mod} &&
+                versioncmp($mods_from_ini{$mod}, $mods_from_scanned{$mod})) {
+            push @errs, {
+                module  => $mod,
+                version => $mods_from_ini{$mod},
+                message => "Version mismatch (".
+                    "$mods_from_scanned{$mod} from scan_prereqs)"};
+        }
         unless (exists($mods_from_scanned{$mod}) ||
                     exists($assume_used{$mod})) {
             push @errs, {
