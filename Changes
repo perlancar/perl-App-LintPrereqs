@@ -1,5 +1,15 @@
 Revision history for App-LintPrereqs
 
+0.10    2013-03-10 (SHARYANTO)
+
+        [INCOMPATIBLE CHANGES]
+
+        - Replace 'default_perl_version' argument with 'perl_version', takes
+          precedence over perl version from dist.ini or scan_prereqs.
+
+        - Force versions in dist.ini and scan_prereqs to match.
+
+
 0.09    2012-10-17 (SHARYANTO)
 
         Fix handling of single-word package name (e.g. Gepok).
