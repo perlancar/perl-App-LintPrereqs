@@ -1,6 +1,6 @@
 package App::LintPrereqs;
 
-use 5.010;
+use 5.010001;
 use strict;
 use warnings;
 use Log::Any qw($log);
@@ -123,6 +123,13 @@ sub lint_prereqs {
     }
     $log->tracef("mods_from_scanned: %s", \%mods_from_scanned);
 
+    if ($mods_from_ini{perl} && $mods_from_scanned{perl}) {
+        if (versioncmp($mods_from_ini{perl}, $mods_from_scanned{perl})) {
+            return [500, "Perl version from dist.ini ($mods_from_ini{perl}) ".
+                        "and scan_prereqs ($mods_from_scanned{perl}) mismatch"];
+        }
+    }
+
     my $perlv; # min perl v to use (& base corelist -v on), in x.yyyzzz format
     if ($args{perl_version}) {
         $log->tracef("Will assume perl %s (via perl_version argument)",
@@ -154,7 +161,7 @@ sub lint_prereqs {
     my @clout = `corelist -v $perlv`;
     if ($?) {
         my $clout = join "", @clout;
-        return [400, "corelist doesn't recognize perl version $perlv"]
+        return [500, "corelist doesn't recognize perl version $perlv"]
             if $clout =~ /has no info on perl /;
         return [500, "Can't execute corelist command successfully"];
     }
