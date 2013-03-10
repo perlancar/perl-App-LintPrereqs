@@ -9,6 +9,7 @@ use Config::IniFiles;
 use File::Find;
 use File::Which;
 use Sort::Versions;
+use Scalar::Util 'looks_like_number';
 
 our %SPEC;
 require Exporter;
@@ -48,9 +49,9 @@ ignore them:
 
 _
     args => {
-        default_perl_version => {
-            schema => [str => {default=>'5.010000'}],
-            summary => 'Perl version to use when unspecified',
+        perl_version => {
+            schema => ['str*'],
+            summary => 'Perl version to use (overrides scan_prereqs/dist.ini)',
         },
     },
     deps => {
@@ -122,9 +123,30 @@ sub lint_prereqs {
     }
     $log->tracef("mods_from_scanned: %s", \%mods_from_scanned);
 
-    my $perlv = $mods_from_ini{perl} // $mods_from_scanned{perl} // '5.010000';
-    return [400, "Invalid syntax in perl version: $perlv"]
-        unless $perlv =~ /\A\d+(\.\d+)*\z/;
+    my $perlv; # min perl v to use (& base corelist -v on), in x.yyyzzz format
+    if ($args{perl_version}) {
+        $log->tracef("Will assume perl %s (via perl_version argument)",
+                     $args{perl_version});
+        $perlv = $args{perl_version};
+    } elsif ($mods_from_ini{perl}) {
+        $log->tracef("Will assume perl %s (via dist.ini)",
+                     $mods_from_ini{perl});
+        $perlv = $mods_from_ini{perl};
+    } elsif ($mods_from_scanned{perl}) {
+        $log->tracef("Will assume perl %s (via scan_prereqs)",
+                     $mods_from_scanned{perl});
+        $perlv = $mods_from_scanned{perl};
+    } else {
+        $log->tracef("Will assume perl %s (from running interpreter's \$^V)",
+                     $^V);
+        if ($^V =~ /^v(\d+)\.(\d+)\.(\d+)/) {
+            $perlv = sprintf("%d\.%03d%03d", $1, $2, $3)+0;
+        } elsif (looks_like_number($^V)) {
+            $perlv = $^V;
+        } else {
+            return [500, "Can't parse \$^V ($^V)"];
+        }
+    }
 
     my %core_mods;
     my $clpath = which("corelist")
