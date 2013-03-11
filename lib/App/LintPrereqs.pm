@@ -187,7 +187,7 @@ sub lint_prereqs {
                 version => $mods_from_ini{$mod},
                 message => "Core in perl $perlv but mentioned"};
         }
-        if (exists $mods_from_scanned{$mod} &&
+        if (exists($mods_from_scanned{$mod}) && $mods_from_scanned{$mod} != 0 &&
                 versioncmp($mods_from_ini{$mod}, $mods_from_scanned{$mod})) {
             push @errs, {
                 module  => $mod,
