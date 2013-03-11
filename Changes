@@ -1,5 +1,12 @@
 Revision history for App-LintPrereqs
 
+0.11    2013-03-11 (SHARYANTO)
+
+        - Allow version mismatch if dist.ini specifies a version but
+          scan_prereqs specifies 0 (e.g. 'require Foo' in code, because require
+          doesn't allow specifying minimum version).
+
+
 0.10    2013-03-10 (SHARYANTO)
 
         [INCOMPATIBLE CHANGES]
