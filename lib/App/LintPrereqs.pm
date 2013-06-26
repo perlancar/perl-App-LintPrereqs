@@ -62,8 +62,9 @@ sub lint_prereqs {
     my %args = @_;
 
     (-f "dist.ini")
-        or return [412, "No dist.ini found, ".
-                       "is your dist managed by Dist::Zilla?"];
+        or return [412, "No dist.ini found. ".
+                       "Are you in the right dir (dist top-level)? ".
+                           "Is your dist managed by Dist::Zilla?"];
 
     my $cfg = Config::IniFiles->new(-file => "dist.ini", -fallback => "ALL");
     $cfg or return [
