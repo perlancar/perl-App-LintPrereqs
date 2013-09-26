@@ -179,28 +179,25 @@ sub lint_prereqs {
 
     my @errs;
     for my $mod (keys %mods_from_ini) {
+        my $v = $mods_from_ini{$mod};
         next if $mod eq 'perl';
-        $log->tracef("Checking mod from dist.ini: %s", $mod);
-        if (exists($core_mods{$mod}) &&
-                versioncmp($core_mods{$mod}, $mods_from_ini{$mod}) >= 0) {
+        $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
+        my $incorev = $core_mods{$mod};
+        if (defined($incorev) && versioncmp($incorev, $v) >= 0) {
             push @errs, {
                 module  => $mod,
-                version => $mods_from_ini{$mod},
-                message => "Core in perl $perlv but mentioned"};
+                message => "Core in perl $perlv ($incorev) but mentioned ($v)"};
         }
-        if (exists($mods_from_scanned{$mod}) && $mods_from_scanned{$mod} != 0 &&
-                versioncmp($mods_from_ini{$mod}, $mods_from_scanned{$mod})) {
+        my $scanv = $mods_from_scanned{$mod};
+        if (defined($scanv) && $scanv != 0 && versioncmp($v, $scanv)) {
             push @errs, {
                 module  => $mod,
-                version => $mods_from_ini{$mod},
-                message => "Version mismatch (".
-                    "$mods_from_scanned{$mod} from scan_prereqs)"};
+                message => "Version mismatch between dist.ini ($v) ".
+                    "and from scanned_prereqs ($scanv)"};
         }
-        unless (exists($mods_from_scanned{$mod}) ||
-                    exists($assume_used{$mod})) {
+        unless (defined($scanv) || exists($assume_used{$mod})) {
             push @errs, {
                 module  => $mod,
-                version => $mods_from_ini{$mod},
                 message => "Unused but listed in dist.ini"};
         }
     }
@@ -214,7 +211,6 @@ sub lint_prereqs {
             if ($v != 0 && versioncmp($incorev, $v) == -1) {
                 push @errs, {
                     module  => $mod,
-                    version => $v,
                     message => "Version requested $v (from scan_prereqs) is ".
                         "higher than bundled with perl $perlv ($incorev)"};
             }
@@ -225,7 +221,6 @@ sub lint_prereqs {
                     exists($assume_provided{$mod})) {
             push @errs, {
                 module  => $mod,
-                version => $mods_from_scanned{$mod},
                 message => "Used but not listed in dist.ini"};
         }
     }
