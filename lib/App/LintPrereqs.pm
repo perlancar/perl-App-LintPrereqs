@@ -207,8 +207,19 @@ sub lint_prereqs {
 
     for my $mod (keys %mods_from_scanned) {
         next if $mod eq 'perl';
-        $log->tracef("Checking mod from scanned: %s", $mod);
-        next if exists $core_mods{$mod}; # XXX check version
+        my $v = $mods_from_scanned{$mod};
+        $log->tracef("Checking mod from scanned: %s (%s)", $mod, $v);
+        if (exists $core_mods{$mod}) {
+            my $incorev = $core_mods{$mod};
+            if ($v != 0 && versioncmp($incorev, $v) == -1) {
+                push @errs, {
+                    module  => $mod,
+                    version => $v,
+                    message => "Version requested $v (from scan_prereqs) is ".
+                        "higher than bundled with perl $perlv ($incorev)"};
+            }
+            next;
+        }
         next if exists $pkgs{$mod};
         unless (exists($mods_from_ini{$mod}) ||
                     exists($assume_provided{$mod})) {
