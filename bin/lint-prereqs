@@ -31,4 +31,9 @@ On errors, error messages will be printed, for example:
 
 To customize, see L<App::LintPrereqs>.
 
+
+=head1 SEE ALSO
+
+L<Dist::Zilla>
+
 =cut
