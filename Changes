@@ -1,5 +1,14 @@
 Revision history for App-LintPrereqs
 
+0.12    2013-09-26 (SHARYANTO)
+
+        - For core modules, compare version from scanned vs version in core
+          modules (e.g. Test::More is 0.92 in perl 5.10.1, if test script says
+          'use Test::More 0.98' we should fail).
+
+        - Tweak outputs and error messages.
+
+
 0.11    2013-03-11 (SHARYANTO)
 
         - Allow version mismatch if dist.ini specifies a version but
@@ -19,38 +28,38 @@ Revision history for App-LintPrereqs
 
 0.09    2012-10-17 (SHARYANTO)
 
-        Fix handling of single-word package name (e.g. Gepok).
+        - Fix handling of single-word package name (e.g. Gepok).
 
 
 0.08    2012-10-04 (SHARYANTO)
 
-        No functional changes. Check perl version and the success status of
-        corelist. Tweak error message.
+        - No functional changes. Check perl version and the success status of
+          corelist. Tweak error message.
 
 
 0.07    2012-08-29 (SHARYANTO)
 
-        Show version information in result.
+        - Show version information in result.
 
 
 0.06    2012-08-28 (SHARYANTO)
 
-        No functional changes. Tweak exit code and error message.
+        - No functional changes. Tweak exit code and error message.
 
 
 0.05    2012-08-28 (SHARYANTO)
 
-        Return detailed result, for scriptability.
+        - Return detailed result, for scriptability.
 
 
 0.04    2012-08-09 (SHARYANTO)
 
-        Fix regex again. D'oh.
+        - Fix regex again. D'oh.
 
 
 0.03    2012-08-09 (SHARYANTO)
 
-        Fix regex.
+        - Fix regex.
 
 
 0.02    2012-08-09 (SHARYANTO)
@@ -64,4 +73,4 @@ Revision history for App-LintPrereqs
 
 0.01    2012-08-08 (SHARYANTO)
 
-        First release.
+        - First release.
