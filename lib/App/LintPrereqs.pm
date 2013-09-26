@@ -230,8 +230,14 @@ sub lint_prereqs {
         }
     }
 
-    [200, @errs ? "Extraneous/missing dependencies" : "OK", \@errs,
-     {"cmdline.exit_code" => @errs ? 200:0}];
+    my $rfopts = {
+        table_column_orders  => [[qw/module message/]],
+    };
+    my $resmeta = {
+        "cmdline.exit_code" => @errs ? 500-300:0,
+        result_format_options => {text=>$rfopts, "text-pretty"=>$rfopts},
+    };
+    [200, @errs ? "Extraneous/missing dependencies" : "OK", \@errs, $resmeta];
 }
 
 1;
