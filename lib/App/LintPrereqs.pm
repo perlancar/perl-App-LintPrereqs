@@ -186,19 +186,27 @@ sub lint_prereqs {
         if (defined($incorev) && versioncmp($incorev, $v) >= 0) {
             push @errs, {
                 module  => $mod,
-                message => "Core in perl $perlv ($incorev) but mentioned ($v)"};
+                message => "Core in perl $perlv ($incorev) but ".
+                    "mentioned in dist.ini ($v)",
+                remedy  => "Remove in dist.ini or lower perl version ".
+                    "requirement",
+            };
         }
         my $scanv = $mods_from_scanned{$mod};
         if (defined($scanv) && $scanv != 0 && versioncmp($v, $scanv)) {
             push @errs, {
                 module  => $mod,
                 message => "Version mismatch between dist.ini ($v) ".
-                    "and from scanned_prereqs ($scanv)"};
+                    "and from scanned_prereqs ($scanv)",
+                remedy  => "Fix either the code or version in dist.ini",
+            };
         }
         unless (defined($scanv) || exists($assume_used{$mod})) {
             push @errs, {
                 module  => $mod,
-                message => "Unused but listed in dist.ini"};
+                message => "Unused but listed in dist.ini",
+                remedy  => "Remove from dist.ini",
+            };
         }
     }
 
@@ -208,11 +216,14 @@ sub lint_prereqs {
         $log->tracef("Checking mod from scanned: %s (%s)", $mod, $v);
         if (exists $core_mods{$mod}) {
             my $incorev = $core_mods{$mod};
-            if ($v != 0 && versioncmp($incorev, $v) == -1) {
+            if ($v != 0 && !$mods_from_ini{$mod} &&
+                    versioncmp($incorev, $v) == -1) {
                 push @errs, {
                     module  => $mod,
                     message => "Version requested $v (from scan_prereqs) is ".
-                        "higher than bundled with perl $perlv ($incorev)"};
+                        "higher than bundled with perl $perlv ($incorev)",
+                    remedy  => "Specify in dist.ini with version=$v",
+                };
             }
             next;
         }
@@ -221,7 +232,9 @@ sub lint_prereqs {
                     exists($assume_provided{$mod})) {
             push @errs, {
                 module  => $mod,
-                message => "Used but not listed in dist.ini"};
+                message => "Used but not listed in dist.ini",
+                remedy  => "Put '$mod=$v' in dist.ini",
+            };
         }
     }
 
