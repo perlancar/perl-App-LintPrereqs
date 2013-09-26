@@ -186,7 +186,7 @@ sub lint_prereqs {
         if (defined($incorev) && versioncmp($incorev, $v) >= 0) {
             push @errs, {
                 module  => $mod,
-                message => "Core in perl $perlv ($incorev) but ".
+                error   => "Core in perl $perlv ($incorev) but ".
                     "mentioned in dist.ini ($v)",
                 remedy  => "Remove in dist.ini or lower perl version ".
                     "requirement",
@@ -196,7 +196,7 @@ sub lint_prereqs {
         if (defined($scanv) && $scanv != 0 && versioncmp($v, $scanv)) {
             push @errs, {
                 module  => $mod,
-                message => "Version mismatch between dist.ini ($v) ".
+                error   => "Version mismatch between dist.ini ($v) ".
                     "and from scanned_prereqs ($scanv)",
                 remedy  => "Fix either the code or version in dist.ini",
             };
@@ -204,7 +204,7 @@ sub lint_prereqs {
         unless (defined($scanv) || exists($assume_used{$mod})) {
             push @errs, {
                 module  => $mod,
-                message => "Unused but listed in dist.ini",
+                error   => "Unused but listed in dist.ini",
                 remedy  => "Remove from dist.ini",
             };
         }
@@ -220,7 +220,7 @@ sub lint_prereqs {
                     versioncmp($incorev, $v) == -1) {
                 push @errs, {
                     module  => $mod,
-                    message => "Version requested $v (from scan_prereqs) is ".
+                    error   => "Version requested $v (from scan_prereqs) is ".
                         "higher than bundled with perl $perlv ($incorev)",
                     remedy  => "Specify in dist.ini with version=$v",
                 };
@@ -232,14 +232,14 @@ sub lint_prereqs {
                     exists($assume_provided{$mod})) {
             push @errs, {
                 module  => $mod,
-                message => "Used but not listed in dist.ini",
+                error   => "Used but not listed in dist.ini",
                 remedy  => "Put '$mod=$v' in dist.ini",
             };
         }
     }
 
     my $rfopts = {
-        table_column_orders  => [[qw/module message/]],
+        table_column_orders  => [[qw/module error remedy/]],
     };
     my $resmeta = {
         "cmdline.exit_code" => @errs ? 500-300:0,
