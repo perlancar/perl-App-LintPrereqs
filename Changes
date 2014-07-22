@@ -1,5 +1,13 @@
 Revision history for App-LintPrereqs
 
+0.15     2014-07-22 (SHARYANTO)
+
+         - No functional changes.
+
+         - Switch CLI scripts from using Perinci::CmdLine to
+           Perinci::CmdLine::Any to reduce size of dependencies.
+
+
 0.14    2014-03-08 (SHARYANTO)
 
 	- No functional changes. Rebuild with Rinci::Wrap to test embedding
