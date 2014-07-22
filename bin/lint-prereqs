@@ -4,11 +4,11 @@ use 5.010;
 use strict;
 use warnings;
 
-use Perinci::CmdLine 0.62;
+use Perinci::CmdLine::Any;
 
 # VERSION
 
-Perinci::CmdLine->new(url => '/App/LintPrereqs/lint_prereqs')->run;
+Perinci::CmdLine::Any->new(url => '/App/LintPrereqs/lint_prereqs')->run;
 
 # ABSTRACT: Check extraneous/missing prerequisites in dist.ini
 # PODNAME: lint-prereqs
