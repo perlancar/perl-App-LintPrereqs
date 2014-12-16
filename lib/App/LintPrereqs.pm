@@ -1,5 +1,8 @@
 package App::LintPrereqs;
 
+# DATE
+# VERSION
+
 use 5.010001;
 use strict;
 use warnings;
@@ -15,8 +18,6 @@ our %SPEC;
 require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT_OK = qw(lint_prereqs);
-
-# VERSION
 
 $SPEC{lint_prereqs} = {
     v => 1.1,
@@ -249,7 +250,7 @@ sub lint_prereqs {
 }
 
 1;
-#ABSTRACT: Check extraneous/missing prerequisites in dist.ini
+#ABSTRACT:
 
 =head1 SYNOPSIS
 
