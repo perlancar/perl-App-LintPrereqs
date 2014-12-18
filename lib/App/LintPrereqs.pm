@@ -75,8 +75,12 @@ sub lint_prereqs {
     my %assume_used;
     my %assume_provided;
     for my $section (grep {
-        m!^(prereqs|extras \s*/\s* lint[_-]prereqs \s*/\s*
-              assume-(?:provided|used))!ix}
+        m!^(
+              osprereqs \s*/\s* .+ |
+              osprereqs(::\w+)+ |
+              prereqs |
+              extras \s*/\s* lint[_-]prereqs \s*/\s* assume-(?:provided|used)
+          )$!ix}
                          $cfg->Sections) {
         for my $param ($cfg->Parameters($section)) {
             my $v   = $cfg->val($section, $param);
