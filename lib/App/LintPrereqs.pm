@@ -78,7 +78,7 @@ sub lint_prereqs {
         m!^(
               osprereqs \s*/\s* .+ |
               osprereqs(::\w+)+ |
-              prereqs |
+              prereqs (?: \s*/\s* \w+)? |
               extras \s*/\s* lint[_-]prereqs \s*/\s* assume-(?:provided|used)
           )$!ix}
                          $cfg->Sections) {
