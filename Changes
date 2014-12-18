@@ -1,5 +1,13 @@
 Revision history for App-LintPrereqs
 
+0.18    2014-12-18 (PERLANCAR)
+
+	- No functional changes.
+
+	- [Bugfix] Regression: section regex didn't match 'Prereqs /
+	  Something' while it used to.
+
+
 0.17    2014-12-18 (PERLANCAR)
 
 	- Also look at OSPrereqs (and OSPrereqs::*) for prereqs.
