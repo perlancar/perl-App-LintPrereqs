@@ -1,5 +1,12 @@
 Revision history for App-LintPrereqs
 
+0.21    2015-01-04 (PERLANCAR)
+
+	- Revert back to using Perl::PrereqScanner by default (due to
+	  ::Lite still misses detecting some modules), but offer --lite to
+	  switch to ::Lite.
+
+
 0.20    2015-01-04 (PERLANCAR)
 
 	- Skip scanning backup files.
