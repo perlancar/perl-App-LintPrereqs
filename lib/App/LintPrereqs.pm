@@ -19,15 +19,48 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT_OK = qw(lint_prereqs);
 
+sub _scan_prereqs {
+    state $scanner = do {
+        require Perl::PrereqScanner::Lite;
+        Perl::PrereqScanner::Lite->new;
+    };
+    require File::Find;
+    my @files;
+    find(
+        sub {
+            return unless -f;
+            push @files, "$File::Find::dir/$_";
+        },
+        (grep {-d} (
+            "t", "xt", "lib", "bin", "script", "scripts",
+            #"sample", "samples", "example", "examples" # decidedly not included
+            #"share", # decidedly not included
+        ))
+    );
+    my %res;
+    for my $file (@files) {
+        #$log->tracef("Scanning %s", $file);
+        my $scanres = $scanner->scan_file($file);
+        next unless $scanres;
+        my $reqs = $scanres->{requirements};
+        #$log->tracef("TMP:reqs=%s", $reqs);
+        for my $req (keys %$reqs) {
+            $res{$req} = $reqs->{$req}{minimum}{original};
+        }
+    }
+    %res;
+}
+
 $SPEC{lint_prereqs} = {
     v => 1.1,
     summary => 'Check extraneous/missing prerequisites in dist.ini',
     description => <<'_',
 
-Check [Prereqs / *] sections in your dist.ini against what's actually being used
-in your Perl code (using Perl::PrereqScanner) and what's in Perl core list of
-modules. Will complain if your prerequisites are not actually used, or already
-in Perl core. Will also complain if there are missing prerequisites.
+Check `[Prereqs / *]` (as well as `OSPrereqs`, `Extras/lint-prereqs/Assume-*`)
+sections in your `dist.ini` against what's actually being used in your Perl code
+(using `Perl::PrereqScanner::Lite`) and what's in Perl core list of modules.
+Will complain if your prerequisites are not actually used, or already in Perl
+core. Will also complain if there are missing prerequisites.
 
 Designed to work with prerequisites that are manually written. Does not work if
 you use AutoPrereqs.
@@ -113,20 +146,7 @@ sub lint_prereqs {
     }, "lib");
     $log->tracef("Packages: %s", \%pkgs);
 
-    my %mods_from_scanned;
-    my $sppath = "scan_prereqs";
-    my $spcmd = "$sppath --combine .";
-    $spcmd .= " t/*.t" if <t/*.t>;
-    $spcmd .= " bin/*" if <bin/*>;
-    $spcmd .= " examples/*" if <examples/*>;
-    for (`$spcmd`) {
-        chomp;
-        /^([\w:]+)\s*=\s*(.+)/ or do {
-            warn "Invalid line from $sppath: $_, skipped";
-            next;
-        };
-        $mods_from_scanned{$1} = $2;
-    }
+    my %mods_from_scanned = _scan_prereqs();
     $log->tracef("mods_from_scanned: %s", \%mods_from_scanned);
 
     if ($mods_from_ini{perl} && $mods_from_scanned{perl}) {
