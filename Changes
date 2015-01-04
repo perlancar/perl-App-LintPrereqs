@@ -1,5 +1,10 @@
 Revision history for App-LintPrereqs
 
+0.20    2015-01-04 (PERLANCAR)
+
+	- Skip scanning backup files.
+
+
 0.19    2015-01-04 (PERLANCAR)
 
 	- Replace Perl::PrereqScanner with Perl::PrereqScanner::Lite for
