@@ -11,6 +11,7 @@ use Log::Any qw($log);
 use Config::IniFiles;
 use File::Find;
 use File::Which;
+use Filename::Backup qw(check_backup_filename);
 use Sort::Versions;
 use Scalar::Util 'looks_like_number';
 
@@ -29,7 +30,7 @@ sub _scan_prereqs {
     find(
         sub {
             return unless -f;
-            return if /~\z/;
+            return if check_backup_filename(filename=>$_);
             push @files, "$File::Find::dir/$_";
         },
         (grep {-d} (
