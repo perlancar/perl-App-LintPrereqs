@@ -29,6 +29,7 @@ sub _scan_prereqs {
     find(
         sub {
             return unless -f;
+            return if /~\z/;
             push @files, "$File::Find::dir/$_";
         },
         (grep {-d} (
