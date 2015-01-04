@@ -21,9 +21,16 @@ our @ISA       = qw(Exporter);
 our @EXPORT_OK = qw(lint_prereqs);
 
 sub _scan_prereqs {
-    state $scanner = do {
-        require Perl::PrereqScanner::Lite;
-        Perl::PrereqScanner::Lite->new;
+    my %args = @_;
+
+    my $scanner = do {
+        if ($args{lite}) {
+            require Perl::PrereqScanner::Lite;
+            Perl::PrereqScanner::Lite->new;
+        } else {
+            require Perl::PrereqScanner;
+            Perl::PrereqScanner->new;
+        }
     };
     require File::Find;
     my @files;
@@ -41,10 +48,12 @@ sub _scan_prereqs {
     );
     my %res;
     for my $file (@files) {
-        #$log->tracef("Scanning %s", $file);
         my $scanres = $scanner->scan_file($file);
-        next unless $scanres;
+        unless ($scanres) {
+            $log->tracef("Scanned %s, got nothing", $file);
+        }
         my $reqs = $scanres->{requirements};
+        $log->tracef("Scanned %s, got: %s", $file, [keys %$reqs]);
         #$log->tracef("TMP:reqs=%s", $reqs);
         for my $req (keys %$reqs) {
             $res{$req} = $reqs->{$req}{minimum}{original};
@@ -88,6 +97,16 @@ _
         perl_version => {
             schema => ['str*'],
             summary => 'Perl version to use (overrides scan_prereqs/dist.ini)',
+        },
+        lite => {
+            schema => ['bool*', is=>1],
+            summary => 'Use Perl::PrereqScanner::Lite instead of Perl::PrereqScanner',
+            description => <<'_',
+
+Lite is faster but it still misses detecting some modules, so it's not the
+default.
+
+_
         },
     },
     deps => {
@@ -148,7 +167,7 @@ sub lint_prereqs {
     }, "lib");
     $log->tracef("Packages: %s", \%pkgs);
 
-    my %mods_from_scanned = _scan_prereqs();
+    my %mods_from_scanned = _scan_prereqs(lite=>$args{lite});
     $log->tracef("mods_from_scanned: %s", \%mods_from_scanned);
 
     if ($mods_from_ini{perl} && $mods_from_scanned{perl}) {
