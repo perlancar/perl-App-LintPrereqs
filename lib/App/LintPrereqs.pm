@@ -12,8 +12,8 @@ use Config::IniFiles;
 use File::Find;
 use File::Which;
 use Filename::Backup qw(check_backup_filename);
-use Sort::Versions;
 use Scalar::Util 'looks_like_number';
+use Version::Util qw(version_gt version_ne);
 
 our %SPEC;
 require Exporter;
@@ -56,7 +56,12 @@ sub _scan_prereqs {
         $log->tracef("Scanned %s, got: %s", $file, [keys %$reqs]);
         #$log->tracef("TMP:reqs=%s", $reqs);
         for my $req (keys %$reqs) {
-            $res{$req} = $reqs->{$req}{minimum}{original};
+            my $v = $reqs->{$req}{minimum}{original};;
+            if (exists $res{$req}) {
+                $res{$req} = $v if version_gt($v, $res{$req});
+            } else {
+                $res{$req} = $v;
+            }
         }
     }
     %res;
@@ -171,7 +176,7 @@ sub lint_prereqs {
     $log->tracef("mods_from_scanned: %s", \%mods_from_scanned);
 
     if ($mods_from_ini{perl} && $mods_from_scanned{perl}) {
-        if (versioncmp($mods_from_ini{perl}, $mods_from_scanned{perl})) {
+        if (version_ne($mods_from_ini{perl}, $mods_from_scanned{perl})) {
             return [500, "Perl version from dist.ini ($mods_from_ini{perl}) ".
                         "and scan_prereqs ($mods_from_scanned{perl}) mismatch"];
         }
@@ -229,7 +234,7 @@ sub lint_prereqs {
         next if $mod eq 'perl';
         $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
         my $incorev = $core_mods{$mod};
-        if (defined($incorev) && versioncmp($incorev, $v) >= 0) {
+        if (defined($incorev) && version_gt($incorev, $v)) {
             push @errs, {
                 module  => $mod,
                 error   => "Core in perl $perlv ($incorev) but ".
@@ -239,7 +244,7 @@ sub lint_prereqs {
             };
         }
         my $scanv = $mods_from_scanned{$mod};
-        if (defined($scanv) && $scanv != 0 && versioncmp($v, $scanv)) {
+        if (defined($scanv) && $scanv != 0 && version_ne($v, $scanv)) {
             push @errs, {
                 module  => $mod,
                 error   => "Version mismatch between dist.ini ($v) ".
@@ -262,8 +267,7 @@ sub lint_prereqs {
         $log->tracef("Checking mod from scanned: %s (%s)", $mod, $v);
         if (exists $core_mods{$mod}) {
             my $incorev = $core_mods{$mod};
-            if ($v != 0 && !$mods_from_ini{$mod} &&
-                    versioncmp($incorev, $v) == -1) {
+            if ($v != 0 && !$mods_from_ini{$mod} && version_gt($v, $incorev)) {
                 push @errs, {
                     module  => $mod,
                     error   => "Version requested $v (from scan_prereqs) is ".
