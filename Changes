@@ -1,5 +1,11 @@
 Revision history for App-LintPrereqs
 
+0.19    2015-01-04 (PERLANCAR)
+
+	- Replace Perl::PrereqScanner with Perl::PrereqScanner::Lite for
+	  performance.
+
+
 0.18    2014-12-18 (PERLANCAR)
 
 	- No functional changes.
