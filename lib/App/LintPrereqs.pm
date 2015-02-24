@@ -26,7 +26,10 @@ sub _scan_prereqs {
     my $scanner = do {
         if ($args{lite}) {
             require Perl::PrereqScanner::Lite;
-            Perl::PrereqScanner::Lite->new;
+            my $scanner = Perl::PrereqScanner::Lite->new;
+            $scanner->add_extra_scanner('Moose');
+            $scanner->add_extra_scanner('Version');
+            $scanner;
         } else {
             require Perl::PrereqScanner;
             Perl::PrereqScanner->new;
