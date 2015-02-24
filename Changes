@@ -1,5 +1,15 @@
 Revision history for App-LintPrereqs
 
+0.23    2015-02-24 (PERLANCAR)
+
+        - [Bugfix] Rebuild to use Perinci::CmdLine::Lite backend by default.
+
+        - [Bugfix] Allow --nolite since --lite is now on by default.
+
+        - [Bugfix] [dzil] Make Perl::PrereqScanner::Lite a requires prereq and
+          not recommends.
+
+
 0.22    2015-02-24 (PERLANCAR)
 
 	- Try once again using --lite by default.
