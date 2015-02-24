@@ -107,7 +107,7 @@ _
             summary => 'Perl version to use (overrides scan_prereqs/dist.ini)',
         },
         lite => {
-            schema => ['bool*', is=>1],
+            schema => ['bool*'],
             default => 1,
             summary => 'Use Perl::PrereqScanner::Lite instead of Perl::PrereqScanner',
             description => <<'_',
