@@ -1,5 +1,13 @@
 Revision history for App-LintPrereqs
 
+0.22    2015-02-24 (PERLANCAR)
+
+	- Try once again using --lite by default.
+
+	- Add extra scanner Moose & Version for Lite (ref:
+	  https://github.com/moznion/Perl-PrereqScanner-Lite/issues/8).
+
+
 0.21    2015-01-04 (PERLANCAR)
 
 	- Revert back to using Perl::PrereqScanner by default (due to
