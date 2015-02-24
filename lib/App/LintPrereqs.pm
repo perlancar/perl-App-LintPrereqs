@@ -108,6 +108,7 @@ _
         },
         lite => {
             schema => ['bool*', is=>1],
+            default => 1,
             summary => 'Use Perl::PrereqScanner::Lite instead of Perl::PrereqScanner',
             description => <<'_',
 
