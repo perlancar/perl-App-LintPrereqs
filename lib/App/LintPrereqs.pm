@@ -110,10 +110,11 @@ _
             schema => ['bool*'],
             default => 1,
             summary => 'Use Perl::PrereqScanner::Lite instead of Perl::PrereqScanner',
+            "summary.alt.bool.not" =>
+                'Use Perl::PrereqScanner instead of Perl::PrereqScanner::Lite',
             description => <<'_',
 
-Lite is faster but it still misses detecting some modules, so it's not the
-default.
+Lite is faster but it might still miss detecting some modules.
 
 _
         },
