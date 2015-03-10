@@ -295,7 +295,7 @@ sub lint_prereqs {
 
     my $resmeta = {
         "cmdline.exit_code" => @errs ? 500-300:0,
-        "cmdline.format_options" => {any=>{table_column_orders=>[[qw/module error remedy/]]}},
+        "format_options" => {any=>{table_column_orders=>[[qw/module error remedy/]]}},
     };
     [200, @errs ? "Extraneous/missing dependencies" : "OK", \@errs, $resmeta];
 }
