@@ -293,12 +293,9 @@ sub lint_prereqs {
         }
     }
 
-    my $rfopts = {
-        table_column_orders  => [[qw/module error remedy/]],
-    };
     my $resmeta = {
         "cmdline.exit_code" => @errs ? 500-300:0,
-        result_format_options => {text=>$rfopts, "text-pretty"=>$rfopts},
+        "cmdline.format_options" => {any=>{table_column_orders=>[[qw/module error remedy/]]}},
     };
     [200, @errs ? "Extraneous/missing dependencies" : "OK", \@errs, $resmeta];
 }
