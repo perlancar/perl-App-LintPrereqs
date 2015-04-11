@@ -1,5 +1,12 @@
 Revision history for App-LintPrereqs
 
+0.25    2015-04-11 (PERLANCAR)
+
+	- Replace detecting core module from using 'corelist -v' to using
+	  Module::CoreList::More->is_still_core to handle modules that were
+	  once in core but removed later.
+
+
 0.24    2015-03-10 (PERLANCAR)
 
 	- Change result metadata 'result_format_options' ->
