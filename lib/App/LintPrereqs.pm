@@ -12,6 +12,7 @@ use Config::IniFiles;
 use File::Find;
 use File::Which;
 use Filename::Backup qw(check_backup_filename);
+use Module::CoreList::More;
 use Scalar::Util 'looks_like_number';
 use Version::Util qw(version_gt version_ne);
 
@@ -187,7 +188,7 @@ sub lint_prereqs {
         }
     }
 
-    my $perlv; # min perl v to use (& base corelist -v on), in x.yyyzzz format
+    my $perlv; # min perl v to use in x.yyyzzz (numified)format
     if ($args{perl_version}) {
         $log->tracef("Will assume perl %s (via perl_version argument)",
                      $args{perl_version});
@@ -212,40 +213,17 @@ sub lint_prereqs {
         }
     }
 
-    my %core_mods;
-    my $clpath = which("corelist")
-        or return [412, "Can't find corelist in PATH"];
-    my @clout = `corelist -v $perlv`;
-    if ($?) {
-        my $clout = join "", @clout;
-        return [500, "corelist doesn't recognize perl version $perlv"]
-            if $clout =~ /has no info on perl /;
-        return [500, "Can't execute corelist command successfully"];
-    }
-    for (@clout) {
-        chomp;
-        /^([\w:]+)(?:\s+(\S+))?\s*$/ or next;
-        #do {
-        #    warn "Invalid line from $clpath: $_, skipped";
-        #    next;
-        #};
-        $core_mods{$1} = $2 // 0;
-    }
-    $log->tracef("core modules in perl $perlv: %s", \%core_mods);
-
     my @errs;
     for my $mod (keys %mods_from_ini) {
         my $v = $mods_from_ini{$mod};
         next if $mod eq 'perl';
         $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
-        my $incorev = $core_mods{$mod};
-        if (defined($incorev) && version_gt($incorev, $v)) {
+        if (Module::CoreList::More->is_still_core($mod, $v, $perlv)) {
             push @errs, {
                 module  => $mod,
-                error   => "Core in perl $perlv ($incorev) but ".
+                error   => "Core in perl ($perlv to latest) but ".
                     "mentioned in dist.ini ($v)",
-                remedy  => "Remove in dist.ini or lower perl version ".
-                    "requirement",
+                remedy  => "Remove from dist.ini",
             };
         }
         my $scanv = $mods_from_scanned{$mod};
@@ -270,21 +248,11 @@ sub lint_prereqs {
         next if $mod eq 'perl';
         my $v = $mods_from_scanned{$mod};
         $log->tracef("Checking mod from scanned: %s (%s)", $mod, $v);
-        if (exists $core_mods{$mod}) {
-            my $incorev = $core_mods{$mod};
-            if ($v != 0 && !$mods_from_ini{$mod} && version_gt($v, $incorev)) {
-                push @errs, {
-                    module  => $mod,
-                    error   => "Version requested $v (from scan_prereqs) is ".
-                        "higher than bundled with perl $perlv ($incorev)",
-                    remedy  => "Specify in dist.ini with version=$v",
-                };
-            }
-            next;
-        }
+        my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
         next if exists $pkgs{$mod};
         unless (exists($mods_from_ini{$mod}) ||
-                    exists($assume_provided{$mod})) {
+                    exists($assume_provided{$mod}) ||
+                    $is_core) {
             push @errs, {
                 module  => $mod,
                 error   => "Used but not listed in dist.ini",
