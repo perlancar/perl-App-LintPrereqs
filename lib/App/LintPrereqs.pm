@@ -137,7 +137,7 @@ sub lint_prereqs {
         local $/;
         ~~<$fh>;
     };
-    return [200, "Not run"] if $ct =~ /^;!no-lint-prereqs$/m;
+    return [200, "Not run (no-lint-prereqs)"] if $ct =~ /^;!no-lint-prereqs$/m;
 
     my $cfg = Config::IniFiles->new(-file => "dist.ini", -fallback => "ALL");
     $cfg or return [
