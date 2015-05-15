@@ -132,6 +132,13 @@ sub lint_prereqs {
                        "Are you in the right dir (dist top-level)? ".
                            "Is your dist managed by Dist::Zilla?"];
 
+    my $ct = {
+        open my($fh), "<", "dist.ini" or die "Can't open dist.ini: $!";
+        local $/;
+        ~~<$fh>;
+    };
+    return [200, "Not run"] if $ct =~ /^;!no-lint-prereqs$/m;
+
     my $cfg = Config::IniFiles->new(-file => "dist.ini", -fallback => "ALL");
     $cfg or return [
         500, "Can't open dist.ini: ".join(", ", @Config::IniFiles::errors)];
