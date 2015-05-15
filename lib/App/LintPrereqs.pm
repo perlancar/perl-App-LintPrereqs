@@ -251,6 +251,31 @@ sub lint_prereqs {
         }
     }
 
+    {
+        no strict 'refs';
+        my %lumped_mods;
+        for my $mod (keys %mods_from_ini) {
+            next unless $mod =~ /::Lumped$/;
+            my $mod_pm = $mod;
+            $mod_pm =~ s!::!/!g;
+            $mod_pm .= ".pm";
+            require $mod_pm;
+            my $lm = \@{"$mod\::LUMPED_MODULES"};
+            for (@$lm) { $lumped_mods{$_} = $mod }
+        }
+        last unless %lumped_mods;
+        $log->tracef("Checking lumped modules");
+        for my $mod (keys %lumped_mods) {
+            if (exists $mods_from_ini{$mod}) {
+                push @errs, {
+                    module => $mod,
+                    error  => "Listed in dist.ini but already lumped in $lumped_mods{$mod}",
+                    remedy => "Remove one of $mod or $lumped_mods{$mod} from dist.ini",
+                };
+            }
+        }
+    }
+
     for my $mod (keys %mods_from_scanned) {
         next if $mod eq 'perl';
         my $v = $mods_from_scanned{$mod};
