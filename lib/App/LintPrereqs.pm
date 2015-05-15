@@ -132,7 +132,7 @@ sub lint_prereqs {
                        "Are you in the right dir (dist top-level)? ".
                            "Is your dist managed by Dist::Zilla?"];
 
-    my $ct = {
+    my $ct = do {
         open my($fh), "<", "dist.ini" or die "Can't open dist.ini: $!";
         local $/;
         ~~<$fh>;
