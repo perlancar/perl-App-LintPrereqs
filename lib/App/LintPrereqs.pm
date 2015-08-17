@@ -6,7 +6,7 @@ package App::LintPrereqs;
 use 5.010001;
 use strict;
 use warnings;
-use Log::Any qw($log);
+use Log::Any::IfLOG qw($log);
 
 use Config::IniFiles;
 use File::Find;

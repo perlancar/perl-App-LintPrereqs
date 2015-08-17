@@ -1,5 +1,12 @@
 Revision history for App-LintPrereqs
 
+0.27    2015-08-17 (PERLANCAR)
+
+	- No functional changes.
+
+	- Switch from Log::Any to Log::Any::IfLOG.
+
+
 0.26    2015-05-15 (PERLANCAR)
 
         - Support lumped modules (see Dist::Zilla::Plugin::Lump for more
