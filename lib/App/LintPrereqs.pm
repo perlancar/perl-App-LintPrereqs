@@ -137,7 +137,7 @@ sub lint_prereqs {
         local $/;
         ~~<$fh>;
     };
-    return [200, "Not run (no-lint-prereqs)"] if $ct =~ /^;!no-lint-prereqs$/m;
+    return [200, "Not run (no-lint-prereqs)"] if $ct =~ /^;!no[_-]lint[_-]prereqs$/m;
 
     my $cfg = Config::IniFiles->new(-file => "dist.ini", -fallback => "ALL");
     $cfg or return [
@@ -161,7 +161,7 @@ sub lint_prereqs {
             $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
             $assume_provided{$param} = $v if     $section =~ /assume-provided/;
             $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
-                $cmt =~ /^;!lint-prereqs\s+assume-used\b/m;
+                $cmt =~ /^;!lint[_-]prereqs\s+assume-used\b/m;
         }
     }
     $log->tracef("mods_from_ini: %s", \%mods_from_ini);
