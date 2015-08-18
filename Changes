@@ -1,5 +1,11 @@
 Revision history for App-LintPrereqs
 
+0.28    2015-08-18 (PERLANCAR)
+
+	- Tweak regex to allow ;!(no-)?lint-prereqs as well as
+	  ;!(no_)?lint_prereqs.
+
+
 0.27    2015-08-17 (PERLANCAR)
 
 	- No functional changes.
