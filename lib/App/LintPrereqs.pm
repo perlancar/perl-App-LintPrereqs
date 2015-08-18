@@ -45,9 +45,20 @@ sub _scan_prereqs {
             push @files, "$File::Find::dir/$_";
         },
         (grep {-d} (
-            "t", "xt", "lib", "bin", "script", "scripts",
+            "lib", "bin", "script", "scripts",
             #"sample", "samples", "example", "examples" # decidedly not included
             #"share", # decidedly not included
+        ))
+    );
+    find(
+        sub {
+            return unless -f;
+            return if check_backup_filename(filename=>$_);
+            return unless /\.t$/;
+            push @files, "$File::Find::dir/$_";
+        },
+        (grep {-d} (
+            "t", "xt",
         ))
     );
     my %res;
