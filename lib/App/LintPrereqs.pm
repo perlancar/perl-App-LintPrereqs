@@ -54,7 +54,7 @@ sub _scan_prereqs {
         sub {
             return unless -f;
             return if check_backup_filename(filename=>$_);
-            return unless /\.t$/;
+            return unless /\.(t|pl|pm)$/;
             push @files, "$File::Find::dir/$_";
         },
         (grep {-d} (
