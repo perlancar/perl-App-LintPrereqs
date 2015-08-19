@@ -38,29 +38,38 @@ sub _scan_prereqs {
     };
     require File::Find;
     my @files;
-    find(
-        sub {
-            return unless -f;
-            return if check_backup_filename(filename=>$_);
-            push @files, "$File::Find::dir/$_";
-        },
-        (grep {-d} (
+
+    {
+        my @dirs = (grep {-d} (
             "lib", "bin", "script", "scripts",
             #"sample", "samples", "example", "examples" # decidedly not included
             #"share", # decidedly not included
-        ))
-    );
-    find(
-        sub {
-            return unless -f;
-            return if check_backup_filename(filename=>$_);
-            return unless /\.(t|pl|pm)$/;
-            push @files, "$File::Find::dir/$_";
-        },
-        (grep {-d} (
-            "t", "xt",
-        ))
-    );
+        ));
+        last unless @dirs;
+        find(
+            sub {
+                return unless -f;
+                return if check_backup_filename(filename=>$_);
+                push @files, "$File::Find::dir/$_";
+            },
+            @dirs
+        );
+    }
+
+    {
+        my @dirs = (grep {-d} ("t", "xt"));
+        last unless @dirs;
+        find(
+            sub {
+                return unless -f;
+                return if check_backup_filename(filename=>$_);
+                return unless /\.(t|pl|pm)$/;
+                push @files, "$File::Find::dir/$_";
+            },
+            @dirs
+        );
+    }
+
     my %res;
     for my $file (@files) {
         my $scanres = $scanner->scan_file($file);
