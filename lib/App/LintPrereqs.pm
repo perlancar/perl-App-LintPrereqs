@@ -109,9 +109,9 @@ Sometimes there are prerequisites that you know are used but can't be detected
 by scan_prereqs, or you want to include anyway. If this is the case, you can
 instruct lint_prereqs to assume the prerequisite is used.
 
-    ;!lint-prereqs assume-used # even though we know it is not currently used
+    ;!lint_prereqs assume-used # even though we know it is not currently used
     Foo::Bar=0
-    ;!lint-prereqs assume-used # we are forcing a certain version
+    ;!lint_prereqs assume-used # we are forcing a certain version
     Baz=0.12
 
 Sometimes there are also prerequisites that are detected by scan_prereqs, but
@@ -120,6 +120,13 @@ ignore them:
 
     [Extras / lint-prereqs / assume-provided]
     Qux::Quux=0
+
+By default, core modules are not allowed to be specified. Sometimes though you
+need to specify because on some systems some core modules are not available
+(e.g. they are split into separate OS packages). In this case, you can specify:
+
+ ;!lint_prereqs allow-core
+ Data::Dumper=0
 
 _
     args => {
@@ -166,27 +173,33 @@ sub lint_prereqs {
     my %mods_from_ini;
     my %assume_used;
     my %assume_provided;
+    my %allow_core;
     for my $section (grep {
         m!^(
               osprereqs \s*/\s* .+ |
               osprereqs(::\w+)+ |
               prereqs (?: \s*/\s* \w+)? |
-              extras \s*/\s* lint[_-]prereqs \s*/\s* assume-(?:provided|used)
+              extras \s*/\s* lint[_-]prereqs \s*/\s* (allow-core|assume-(?:provided|used))
           )$!ix}
                          $cfg->Sections) {
         for my $param ($cfg->Parameters($section)) {
             my $v   = $cfg->val($section, $param);
             my $cmt = $cfg->GetParameterComment($section, $param) // "";
             #$log->tracef("section=$section, param=$param, v=$v, cmt=$cmt");
-            $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
-            $assume_provided{$param} = $v if     $section =~ /assume-provided/;
-            $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
-                $cmt =~ /^;!lint[_-]prereqs\s+assume-used\b/m;
+            if ($section =~ /allow-core/ || $cmt =~ /^;!lint[_-]prereqs\s+allow-core\b/m) {
+                $allow_core{$param} = $v;
+            } else {
+                $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
+                $assume_provided{$param} = $v if     $section =~ /assume-provided/;
+                $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
+                    $cmt =~ /^;!lint[_-]prereqs\s+assume-used\b/m;
+            }
         }
     }
     $log->tracef("mods_from_ini: %s", \%mods_from_ini);
     $log->tracef("assume_used: %s", \%assume_used);
     $log->tracef("assume_provided: %s", \%assume_provided);
+    $log->tracef("allow_core: %s", \%allow_core);
 
     # assume package names from filenames, should be better and scan using PPI
     my %pkgs;
@@ -245,7 +258,8 @@ sub lint_prereqs {
         my $v = $mods_from_ini{$mod};
         next if $mod eq 'perl';
         $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
-        if (Module::CoreList::More->is_still_core($mod, $v, $perlv)) {
+        if (Module::CoreList::More->is_still_core($mod, $v, $perlv)
+              && !exists($allow_core{$mod})) {
             push @errs, {
                 module  => $mod,
                 error   => "Core in perl ($perlv to latest) but ".
