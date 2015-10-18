@@ -1,5 +1,10 @@
 Revision history for App-LintPrereqs
 
+0.32    2015-10-18 (PERLANCAR)
+
+	- Add directive argument: allow-core.
+
+
 0.31    2015-08-31 (PERLANCAR)
 
 	- [Bugfix] Don't explode when there is no t/.
