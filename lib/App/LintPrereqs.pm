@@ -99,7 +99,7 @@ $SPEC{lint_prereqs} = {
 Check `[Prereqs / *]` (as well as `OSPrereqs`, `Extras/lint-prereqs/Assume-*`)
 sections in your `dist.ini` against what's actually being used in your Perl code
 (using `Perl::PrereqScanner::Lite`) and what's in Perl core list of modules.
-Will complain if your prerequisites are not actually used (superfluous
+Will complain if your prerequisites are not actually used (extraneous
 dependencies), or if there are missing prerequisites. Will also complain if a
 prerequisite is already in Perl core (but this can be configured).
 
@@ -268,13 +268,14 @@ sub lint_prereqs {
         my $v = $mods_from_ini{$mod};
         next if $mod eq 'perl';
         $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
-        if (!$args{core_prereqs} &&
-                Module::CoreList::More->is_still_core($mod, $v, $perlv)
-                      && !exists($allow_core{$mod})) {
+        my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
+        if (!$args{core_prereqs} && $is_core && !exists($allow_core{$mod})) {
             push @errs, {
                 module  => $mod,
+                req_v   => $v,
+                is_core => 1,
                 error   => "Core in perl ($perlv to latest) but ".
-                    "mentioned in dist.ini ($v)",
+                    "mentioned in dist.ini",
                 remedy  => "Remove from dist.ini",
             };
         }
@@ -282,6 +283,8 @@ sub lint_prereqs {
         if (defined($scanv) && $scanv != 0 && version_ne($v, $scanv)) {
             push @errs, {
                 module  => $mod,
+                req_v   => $v,
+                is_core => $is_core,
                 error   => "Version mismatch between dist.ini ($v) ".
                     "and from scanned_prereqs ($scanv)",
                 remedy  => "Fix either the code or version in dist.ini",
@@ -290,6 +293,8 @@ sub lint_prereqs {
         unless (defined($scanv) || exists($assume_used{$mod})) {
             push @errs, {
                 module  => $mod,
+                req_v   => $v,
+                is_core => $is_core,
                 error   => "Unused but listed in dist.ini",
                 remedy  => "Remove from dist.ini",
             };
@@ -311,11 +316,15 @@ sub lint_prereqs {
         last unless %lumped_mods;
         $log->tracef("Checking lumped modules");
         for my $mod (keys %lumped_mods) {
+            my $v = $mods_from_ini{$mod};
+            my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
             if (exists $mods_from_ini{$mod}) {
                 push @errs, {
-                    module => $mod,
-                    error  => "Listed in dist.ini but already lumped in $lumped_mods{$mod}",
-                    remedy => "Remove one of $mod or $lumped_mods{$mod} from dist.ini",
+                    module  => $mod,
+                    req_v   => $v,
+                    is_core => $is_core,
+                    error   => "Listed in dist.ini but already lumped in $lumped_mods{$mod}",
+                    remedy  => "Remove one of $mod or $lumped_mods{$mod} from dist.ini",
                 };
             }
         }
@@ -332,6 +341,8 @@ sub lint_prereqs {
                         ($args{core_prereqs} ? 0 : $is_core)) {
             push @errs, {
                 module  => $mod,
+                req_v   => $v,
+                is_core => $is_core,
                 error   => "Used but not listed in dist.ini",
                 remedy  => "Put '$mod=$v' in dist.ini",
             };
@@ -340,7 +351,7 @@ sub lint_prereqs {
 
     my $resmeta = {
         "cmdline.exit_code" => @errs ? 500-300:0,
-        "format_options" => {any=>{table_column_orders=>[[qw/module error remedy/]]}},
+        "table.fields" => [qw/module req_v is_core error remedy/],
     };
     [200, @errs ? "Extraneous/missing dependencies" : "OK", \@errs, $resmeta];
 }
