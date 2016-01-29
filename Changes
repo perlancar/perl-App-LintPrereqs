@@ -1,5 +1,15 @@
 Revision history for App-LintPrereqs
 
+0.33    2016-01-29 (PERLANCAR)
+
+	- Show requested version (req_v) and is_core fields in result.
+
+	- Add option: --core-prereqs to require core modules to be listed
+	  just like non-core modules.
+
+	- Bump prereq version Log::Any::IfLOG to 0.07.
+
+
 0.32    2015-10-18 (PERLANCAR)
 
 	- Add directive argument: allow-core.
