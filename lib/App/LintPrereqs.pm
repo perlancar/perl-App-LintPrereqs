@@ -99,8 +99,9 @@ $SPEC{lint_prereqs} = {
 Check `[Prereqs / *]` (as well as `OSPrereqs`, `Extras/lint-prereqs/Assume-*`)
 sections in your `dist.ini` against what's actually being used in your Perl code
 (using `Perl::PrereqScanner::Lite`) and what's in Perl core list of modules.
-Will complain if your prerequisites are not actually used, or already in Perl
-core. Will also complain if there are missing prerequisites.
+Will complain if your prerequisites are not actually used (superfluous
+dependencies), or if there are missing prerequisites. Will also complain if a
+prerequisite is already in Perl core (but this can be configured).
 
 Designed to work with prerequisites that are manually written. Does not work if
 you use AutoPrereqs.
@@ -146,9 +147,18 @@ Lite is faster but it might still miss detecting some modules.
 
 _
         },
-    },
-    deps => {
-        prog => 'scan_prereqs',
+        core_prereqs => {
+            schema => ['bool*'],
+            default => 0,
+            summary => 'Whether or not prereqs to core modules are allowed',
+            description => <<'_',
+
+If set to 0 (the default), will complain if there are prerequisites to core
+modules. If set to 1, prerequisites to core modules are required just like other
+modules.
+
+_
+        },
     },
 };
 sub lint_prereqs {
@@ -258,8 +268,9 @@ sub lint_prereqs {
         my $v = $mods_from_ini{$mod};
         next if $mod eq 'perl';
         $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
-        if (Module::CoreList::More->is_still_core($mod, $v, $perlv)
-              && !exists($allow_core{$mod})) {
+        if (!$args{core_prereqs} &&
+                Module::CoreList::More->is_still_core($mod, $v, $perlv)
+                      && !exists($allow_core{$mod})) {
             push @errs, {
                 module  => $mod,
                 error   => "Core in perl ($perlv to latest) but ".
@@ -318,7 +329,7 @@ sub lint_prereqs {
         next if exists $pkgs{$mod};
         unless (exists($mods_from_ini{$mod}) ||
                     exists($assume_provided{$mod}) ||
-                    $is_core) {
+                        ($args{core_prereqs} ? 0 : $is_core)) {
             push @errs, {
                 module  => $mod,
                 error   => "Used but not listed in dist.ini",
