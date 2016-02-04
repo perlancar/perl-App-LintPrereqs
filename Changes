@@ -1,5 +1,10 @@
 Revision history for App-LintPrereqs
 
+0.34    2016-02-04 (PERLANCAR)
+
+	- [Incompatible change] Set default --core-prereqs to 1.
+
+
 0.33    2016-01-29 (PERLANCAR)
 
 	- Show requested version (req_v) and is_core fields in result.
