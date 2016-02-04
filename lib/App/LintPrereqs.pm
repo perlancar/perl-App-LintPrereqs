@@ -149,7 +149,7 @@ _
         },
         core_prereqs => {
             schema => ['bool*'],
-            default => 0,
+            default => 1,
             summary => 'Whether or not prereqs to core modules are allowed',
             description => <<'_',
 
