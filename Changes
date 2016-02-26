@@ -1,5 +1,11 @@
 Revision history for App-LintPrereqs
 
+0.35    2016-02-27 (PERLANCAR)
+
+	- [ux] Sort result by module name (a la PERLANCAR: perl, then
+	  pragmas, then modules).
+
+
 0.34    2016-02-04 (PERLANCAR)
 
 	- [Incompatible change] Set default --core-prereqs to 1.
