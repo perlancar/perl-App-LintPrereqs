@@ -14,6 +14,7 @@ use File::Which;
 use Filename::Backup qw(check_backup_filename);
 use Module::CoreList::More;
 use Scalar::Util 'looks_like_number';
+use Sort::Sub qw(prereq_ala_perlancar);
 use Version::Util qw(version_gt version_ne);
 
 our %SPEC;
@@ -348,6 +349,8 @@ sub lint_prereqs {
             };
         }
     }
+
+    @errs = sort {prereq_ala_perlancar($a->{module}, $b->{module})} @errs;
 
     my $resmeta = {
         "cmdline.exit_code" => @errs ? 500-300:0,
