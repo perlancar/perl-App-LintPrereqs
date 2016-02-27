@@ -8,7 +8,7 @@ use strict;
 use warnings;
 use Log::Any::IfLOG qw($log);
 
-use Config::IniFiles;
+use Config::IOD;
 use File::Find;
 use File::Which;
 use Filename::Backup qw(check_backup_filename);
@@ -177,9 +177,12 @@ sub lint_prereqs {
     };
     return [200, "Not run (no-lint-prereqs)"] if $ct =~ /^;!no[_-]lint[_-]prereqs$/m;
 
-    my $cfg = Config::IniFiles->new(-file => "dist.ini", -fallback => "ALL");
-    $cfg or return [
-        500, "Can't open dist.ini: ".join(", ", @Config::IniFiles::errors)];
+    my $ciod = Config::IOD->new(
+        allow_duplicate_key => 0,
+        ignore_unknown_directive => 1,
+    );
+
+    my $cfg = $ciod->read_string($ct);
 
     my %mods_from_ini;
     my %assume_used;
@@ -192,18 +195,19 @@ sub lint_prereqs {
               prereqs (?: \s*/\s* \w+)? |
               extras \s*/\s* lint[_-]prereqs \s*/\s* (allow-core|assume-(?:provided|used))
           )$!ix}
-                         $cfg->Sections) {
-        for my $param ($cfg->Parameters($section)) {
-            my $v   = $cfg->val($section, $param);
-            my $cmt = $cfg->GetParameterComment($section, $param) // "";
-            #$log->tracef("section=$section, param=$param, v=$v, cmt=$cmt");
-            if ($section =~ /allow-core/ || $cmt =~ /^;!lint[_-]prereqs\s+allow-core\b/m) {
+                         $cfg->list_sections) {
+        for my $param ($cfg->list_keys($section)) {
+            my $v         = $cfg->get_value($section, $param);
+            my $dir = $cfg->get_directive_before_key($section, $param);
+            my $dir_s = $dir ? join(" ", @$dir) : "";
+            #$log->tracef("section=%s, v=%s, param=%s, directive=%s", $section, $param, $v, $dir_s);
+            if ($section =~ /allow-core/ || $dir_s =~ /^lint[_-]prereqs\s+allow-core\b/m) {
                 $allow_core{$param} = $v;
             } else {
                 $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
                 $assume_provided{$param} = $v if     $section =~ /assume-provided/;
                 $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
-                    $cmt =~ /^;!lint[_-]prereqs\s+assume-used\b/m;
+                    $dir_s =~ /^lint[_-]prereqs\s+assume-used\b/m;
             }
         }
     }
