@@ -38,9 +38,10 @@ sub _scan_prereqs {
         }
     };
     require File::Find;
-    my @files;
+    my %files; # key=phase, val=[file, ...]
 
     {
+        $files{Runtime} = [];
         my @dirs = (grep {-d} (
             "lib", "bin", "script", "scripts",
             #"sample", "samples", "example", "examples" # decidedly not included
@@ -51,7 +52,7 @@ sub _scan_prereqs {
             sub {
                 return unless -f;
                 return if check_backup_filename(filename=>$_);
-                push @files, "$File::Find::dir/$_";
+                push @{$files{Runtime}}, "$File::Find::dir/$_";
             },
             @dirs
         );
@@ -65,70 +66,89 @@ sub _scan_prereqs {
                 return unless -f;
                 return if check_backup_filename(filename=>$_);
                 return unless /\.(t|pl|pm)$/;
-                push @files, "$File::Find::dir/$_";
+                push @{$files{Test}}, "$File::Find::dir/$_";
             },
             @dirs
         );
     }
 
-    my %res;
-    for my $file (@files) {
-        my $scanres = $scanner->scan_file($file);
-        unless ($scanres) {
-            $log->tracef("Scanned %s, got nothing", $file);
-        }
-        my $reqs = $scanres->{requirements};
-        $log->tracef("Scanned %s, got: %s", $file, [keys %$reqs]);
-        #$log->tracef("TMP:reqs=%s", $reqs);
-        for my $req (keys %$reqs) {
-            my $v = $reqs->{$req}{minimum}{original};;
-            if (exists $res{$req}) {
-                $res{$req} = $v if version_gt($v, $res{$req});
+    my %res; # key=phase, value=hash of {mod=>version , ...}
+    for my $phase (keys %files) {
+        $res{$phase} = {};
+        for my $file (@{$files{$phase}}) {
+            my $scanres = $scanner->scan_file($file);
+            unless ($scanres) {
+                $log->tracef("Scanned %s, got nothing", $file);
+            }
+            my $reqs = $scanres->{requirements};
+            $log->tracef("Scanned %s, got: %s", $file, [keys %$reqs]);
+            #$log->tracef("TMP:reqs=%s", $reqs);
+            for my $req (keys %$reqs) {
+                my $v = $reqs->{$req}{minimum}{original};;
+                if (exists $res{$phase}{$req}) {
+                    $res{$phase}{$req} = $v
+                        if version_gt($v, $res{$phase}{$req});
+                } else {
+                    $res{$phase}{$req} = $v;
+                }
+            }
+        } # for file
+    } # for phase
+
+    # create a merged list of prereqs from any phase
+    for my $phase (keys %files) {
+        $res{Any} = {};
+        for my $req (keys %{ $res{$phase} }) {
+            my $v = $res{$phase}{$req};
+            if (exists $res{Any}{$req}) {
+                $res{Any}{$req} = $v
+                    if version_gt($v, $res{Any}{$req});
             } else {
-                $res{$req} = $v;
+                $res{Any}{$req} = $v;
             }
         }
     }
+
     %res;
 }
 
 $SPEC{lint_prereqs} = {
     v => 1.1,
-    summary => 'Check extraneous/missing prerequisites in dist.ini',
+    summary => 'Check extraneous/missing/incorrect prerequisites in dist.ini',
     description => <<'_',
 
-Check `[Prereqs / *]` (as well as `OSPrereqs`, `Extras/lint-prereqs/Assume-*`)
-sections in your `dist.ini` against what's actually being used in your Perl code
-(using `Perl::PrereqScanner::Lite`) and what's in Perl core list of modules.
-Will complain if your prerequisites are not actually used (extraneous
-dependencies), or if there are missing prerequisites. Will also complain if a
-prerequisite is already in Perl core (but this can be configured).
+lint-prereqs can improve your prereqs specification in `dist.ini` by reporting
+prereqs that are extraneous (specified but unused), missing (used/required but
+not specified), or incorrect (mismatching version between what's specified in
+`dist.ini` vs in source code, incorrect phase like test prereqs specified in
+runtime, etc).
 
-Designed to work with prerequisites that are manually written. Does not work if
-you use AutoPrereqs.
+Checking actual usage of prereqs is done using `Perl::PrereqScanner` (or
+`Perl::PrereqScanner::Lite`).
+
+Sections that will be checked for prereqs include `[Prereqs / *]`, as well as
+`OSPrereqs`, `Extras/lint-prereqs/Assume-*`. Designed to work with prerequisites
+that are manually written. Does not work if you use AutoPrereqs (using
+AutoPrereqs basically means that you do not specify prereqs and just use
+whatever modules are detected by the scanner.)
 
 Sometimes there are prerequisites that you know are used but can't be detected
-by scan_prereqs, or you want to include anyway. If this is the case, you can
-instruct lint_prereqs to assume the prerequisite is used.
+by the scanner, or you want to include anyway. If this is the case, you can
+instruct lint_prereqs to assume that the prerequisite is used.
 
-    ;!lint_prereqs assume-used # even though we know it is not currently used
+    ;!lint_prereqs assume-used "even though we know it is not currently used"
     Foo::Bar=0
-    ;!lint_prereqs assume-used # we are forcing a certain version
+
+    ;!lint_prereqs assume-used "we are forcing a certain version"
     Baz=0.12
 
 Sometimes there are also prerequisites that are detected by scan_prereqs, but
-you know are already provided by some other modules. So to make lint-prereqs
-ignore them:
+are false positives (`Perl::PrereqScanner::Lite` sometimes does this because its
+parser is simpler) or you know are already provided by some other modules. So to
+make lint-prereqs ignore them:
 
     [Extras / lint-prereqs / assume-provided]
     Qux::Quux=0
-
-By default, core modules are not allowed to be specified. Sometimes though you
-need to specify because on some systems some core modules are not available
-(e.g. they are split into separate OS packages). In this case, you can specify:
-
- ;!lint_prereqs allow-core
- Data::Dumper=0
 
 _
     args => {
@@ -138,7 +158,7 @@ _
         },
         lite => {
             schema => ['bool*'],
-            default => 1,
+            default => 0,
             summary => 'Use Perl::PrereqScanner::Lite instead of Perl::PrereqScanner',
             "summary.alt.bool.not" =>
                 'Use Perl::PrereqScanner instead of Perl::PrereqScanner::Lite',
@@ -187,13 +207,12 @@ sub lint_prereqs {
     my %mods_from_ini;
     my %assume_used;
     my %assume_provided;
-    my %allow_core;
     for my $section (grep {
         m!^(
               osprereqs \s*/\s* .+ |
               osprereqs(::\w+)+ |
               prereqs (?: \s*/\s* \w+)? |
-              extras \s*/\s* lint[_-]prereqs \s*/\s* (allow-core|assume-(?:provided|used))
+              extras \s*/\s* lint[_-]prereqs \s*/\s* (assume-(?:provided|used))
           )$!ix}
                          $cfg->list_sections) {
         for my $param ($cfg->list_keys($section)) {
@@ -201,20 +220,16 @@ sub lint_prereqs {
             my $dir = $cfg->get_directive_before_key($section, $param);
             my $dir_s = $dir ? join(" ", @$dir) : "";
             #$log->tracef("section=%s, v=%s, param=%s, directive=%s", $section, $param, $v, $dir_s);
-            if ($section =~ /allow-core/ || $dir_s =~ /^lint[_-]prereqs\s+allow-core\b/m) {
-                $allow_core{$param} = $v;
-            } else {
-                $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
-                $assume_provided{$param} = $v if     $section =~ /assume-provided/;
-                $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
-                    $dir_s =~ /^lint[_-]prereqs\s+assume-used\b/m;
-            }
+
+            $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
+            $assume_provided{$param} = $v if     $section =~ /assume-provided/;
+            $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
+                $dir_s =~ /^lint[_-]prereqs\s+assume-used\b/m;
         }
     }
     $log->tracef("mods_from_ini: %s", \%mods_from_ini);
     $log->tracef("assume_used: %s", \%assume_used);
     $log->tracef("assume_provided: %s", \%assume_provided);
-    $log->tracef("allow_core: %s", \%allow_core);
 
     # assume package names from filenames, should be better and scan using PPI
     my %pkgs;
@@ -274,7 +289,7 @@ sub lint_prereqs {
         next if $mod eq 'perl';
         $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
         my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
-        if (!$args{core_prereqs} && $is_core && !exists($allow_core{$mod})) {
+        if (!$args{core_prereqs} && $is_core) {
             push @errs, {
                 module  => $mod,
                 req_v   => $v,

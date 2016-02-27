@@ -1,5 +1,21 @@
 Revision history for App-LintPrereqs
 
+0.37    2016-02-27 (PERLANCAR) (unreleased)
+
+	- [Enhancement] Prereqs that are only required in test (t/, xt/) must
+          now be put in [Prereqs / Test*] sections and not in other phases. This
+          will be useful when CPAN clients want to skip installing test
+          prerequisites (e.g. because user runs "cpanm -n" instead of "cpanm").
+
+        - [Removed] Remove 'allow-core' feature to simplify stuffs. You either
+          need to specify core prereqs (if `core_prereqs` option is enabled, the
+          default) or are not allowed to specify core prereqs (if `core_prereqs`
+          option is disabled).
+
+        - [Incompatible change] For safety, switch back default scanner to
+          Perl::PrereqScanner (::Lite still misses/misdetects sometimes).
+
+
 0.36    2016-02-27 (PERLANCAR)
 
 	- [Internal] Switch from using Config::IniFiles to Config::IOD.
