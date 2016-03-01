@@ -203,7 +203,6 @@ sub lint_prereqs {
     return [200, "Not run (no-lint-prereqs)"] if $ct =~ /^;!no[_-]lint[_-]prereqs$/m;
 
     my $ciod = Config::IOD->new(
-        allow_duplicate_key => 0,
         ignore_unknown_directive => 1,
     );
 
@@ -234,6 +233,9 @@ sub lint_prereqs {
 
         for my $param ($cfg->list_keys($section)) {
             my $v         = $cfg->get_value($section, $param);
+            if (ref($v) eq 'ARRAY') {
+                return [412, "Multiple '$param' prereq lines specified in dist.ini"];
+            }
             my $dir = $cfg->get_directive_before_key($section, $param);
             my $dir_s = $dir ? join(" ", @$dir) : "";
             #$log->tracef("section=%s, v=%s, param=%s, directive=%s", $section, $param, $v, $dir_s);
