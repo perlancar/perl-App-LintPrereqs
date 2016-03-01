@@ -1,11 +1,15 @@
 Revision history for App-LintPrereqs
 
-0.37    2016-02-27 (PERLANCAR) (unreleased)
+0.37    2016-03-01 (PERLANCAR)
 
-	- [Enhancement] Prereqs that are only required in test (t/, xt/) must
-          now be put in [Prereqs / Test*] sections and not in other phases. This
-          will be useful when CPAN clients want to skip installing test
-          prerequisites (e.g. because user runs "cpanm -n" instead of "cpanm").
+	- [Enhancement] Check some misplaced phase cases: 1) prereqs used only
+          in tests (t/, xt/) must be put in Test prereqs in dist.ini and not in
+          [Prereqs / Runtime*]; 2) prereqs used in test as well as runtime must
+          be put in Runtime prereqs and not in [Prereqs / Test*].
+
+          This will be useful when CPAN clients want to skip installing
+          test-only prerequisites (e.g. because user runs "cpanm -n" instead of
+          "cpanm").
 
         - [Removed] Remove 'allow-core' feature to simplify stuffs. You either
           need to specify core prereqs (if `core_prereqs` option is enabled, the
