@@ -22,6 +22,23 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT_OK = qw(lint_prereqs);
 
+# create a merged list of prereqs from any phase
+sub _create_prereqs_for_Any_phase {
+    my $prereqs = shift;
+    $prereqs->{Any}   = {};
+    for my $phase (grep {$_ ne 'Any'} keys %$prereqs) {
+        for my $mod (keys %{ $prereqs->{$phase} }) {
+            my $v = $prereqs->{$phase}{$mod};
+            if (exists $prereqs->{Any}{$mod}) {
+                $prereqs->{Any}{$mod} = $v
+                    if version_gt($v, $prereqs->{Any}{$mod});
+            } else {
+                $prereqs->{Any}{$mod} = $v;
+            }
+        }
+    }
+}
+
 sub _scan_prereqs {
     my %args = @_;
 
@@ -95,19 +112,7 @@ sub _scan_prereqs {
         } # for file
     } # for phase
 
-    # create a merged list of prereqs from any phase
-    for my $phase (keys %files) {
-        $res{Any} = {};
-        for my $req (keys %{ $res{$phase} }) {
-            my $v = $res{$phase}{$req};
-            if (exists $res{Any}{$req}) {
-                $res{Any}{$req} = $v
-                    if version_gt($v, $res{Any}{$req});
-            } else {
-                $res{Any}{$req} = $v;
-            }
-        }
-    }
+    _create_prereqs_for_Any_phase(\%res);
 
     %res;
 }
@@ -207,32 +212,48 @@ sub lint_prereqs {
     my %mods_from_ini;
     my %assume_used;
     my %assume_provided;
-    for my $section (grep {
-        m!^(
-              osprereqs \s*/\s* .+ |
-              osprereqs(::\w+)+ |
-              prereqs (?: \s*/\s* \w+)? |
-              extras \s*/\s* lint[_-]prereqs \s*/\s* (assume-(?:provided|used))
-          )$!ix}
-                         $cfg->list_sections) {
+    for my $section ($cfg->list_sections) {
+        $section =~ m!^(
+                          osprereqs \s*/\s* .+ |
+                          osprereqs(::\w+)+ |
+                          prereqs (?: \s*/\s* (?<prereqs_phase_rel>\w+))? |
+                          extras \s*/\s* lint[_-]prereqs \s*/\s* (assume-(?:provided|used))
+                      )$!ix or next;
+        #$log->errorf("TMP: section=%s, %%+=%s", $section, {%+});
+
+        my $phase;
+        if (my $pr = $+{prereqs_phase_rel}) {
+            if ($pr =~ /^(build|configure|develop|runtime|test)/i) {
+                $phase = ucfirst(lc($1));
+            } else {
+                return [400, "Invalid section '$section' (unknown phase)"];
+            }
+        } else {
+            $phase = "Runtime";
+        }
+
         for my $param ($cfg->list_keys($section)) {
             my $v         = $cfg->get_value($section, $param);
             my $dir = $cfg->get_directive_before_key($section, $param);
             my $dir_s = $dir ? join(" ", @$dir) : "";
             #$log->tracef("section=%s, v=%s, param=%s, directive=%s", $section, $param, $v, $dir_s);
 
-            $mods_from_ini{$param}   = $v unless $section =~ /assume-provided/;
-            $assume_provided{$param} = $v if     $section =~ /assume-provided/;
-            $assume_used{$param}     = $v if     $section =~ /assume-used/ ||
+            $mods_from_ini{$phase}{$param}   = $v unless $section =~ /assume-provided/;
+            $assume_provided{$phase}{$param} = $v if     $section =~ /assume-provided/;
+            $assume_used{$phase}{$param}     = $v if     $section =~ /assume-used/ ||
                 $dir_s =~ /^lint[_-]prereqs\s+assume-used\b/m;
-        }
-    }
+        } # for param
+    } # for section
+    _create_prereqs_for_Any_phase(\%mods_from_ini);
+    _create_prereqs_for_Any_phase(\%assume_provided);
+    _create_prereqs_for_Any_phase(\%assume_used);
     $log->tracef("mods_from_ini: %s", \%mods_from_ini);
     $log->tracef("assume_used: %s", \%assume_used);
     $log->tracef("assume_provided: %s", \%assume_provided);
 
-    # assume package names from filenames, should be better and scan using PPI
-    my %pkgs;
+    # get packages from current dist. assume package names from filenames,
+    # should be better and scan using PPI
+    my %dist_pkgs;
     find({
         #no_chdir => 1,
         wanted => sub {
@@ -243,18 +264,18 @@ sub lint_prereqs {
             $pkg =~ s!/!::!g;
             $pkg .= (length($pkg) ? "::" : "") . $_;
             $pkg =~ s/\.pm$//;
-            $pkgs{$pkg}++;
+            $dist_pkgs{$pkg}++;
         },
     }, "lib");
-    $log->tracef("Packages: %s", \%pkgs);
+    $log->tracef("Dist packages: %s", \%dist_pkgs);
 
     my %mods_from_scanned = _scan_prereqs(lite=>$args{lite});
     $log->tracef("mods_from_scanned: %s", \%mods_from_scanned);
 
-    if ($mods_from_ini{perl} && $mods_from_scanned{perl}) {
-        if (version_ne($mods_from_ini{perl}, $mods_from_scanned{perl})) {
-            return [500, "Perl version from dist.ini ($mods_from_ini{perl}) ".
-                        "and scan_prereqs ($mods_from_scanned{perl}) mismatch"];
+    if ($mods_from_ini{Any}{perl} && $mods_from_scanned{Any}{perl}) {
+        if (version_ne($mods_from_ini{Any}{perl}, $mods_from_scanned{Any}{perl})) {
+            return [500, "Perl version from dist.ini ($mods_from_ini{Any}{perl}) ".
+                        "and scan_prereqs ($mods_from_scanned{Any}{perl}) mismatch"];
         }
     }
 
@@ -263,14 +284,14 @@ sub lint_prereqs {
         $log->tracef("Will assume perl %s (via perl_version argument)",
                      $args{perl_version});
         $perlv = $args{perl_version};
-    } elsif ($mods_from_ini{perl}) {
+    } elsif ($mods_from_ini{Any}{perl}) {
         $log->tracef("Will assume perl %s (via dist.ini)",
-                     $mods_from_ini{perl});
-        $perlv = $mods_from_ini{perl};
-    } elsif ($mods_from_scanned{perl}) {
+                     $mods_from_ini{Any}{perl});
+        $perlv = $mods_from_ini{Any}{perl};
+    } elsif ($mods_from_scanned{Any}{perl}) {
         $log->tracef("Will assume perl %s (via scan_prereqs)",
-                     $mods_from_scanned{perl});
-        $perlv = $mods_from_scanned{perl};
+                     $mods_from_scanned{Any}{perl});
+        $perlv = $mods_from_scanned{Any}{perl};
     } else {
         $log->tracef("Will assume perl %s (from running interpreter's \$^V)",
                      $^V);
@@ -284,47 +305,76 @@ sub lint_prereqs {
     }
 
     my @errs;
-    for my $mod (keys %mods_from_ini) {
-        my $v = $mods_from_ini{$mod};
-        next if $mod eq 'perl';
-        $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
-        my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
-        if (!$args{core_prereqs} && $is_core) {
-            push @errs, {
-                module  => $mod,
-                req_v   => $v,
-                is_core => 1,
-                error   => "Core in perl ($perlv to latest) but ".
-                    "mentioned in dist.ini",
-                remedy  => "Remove from dist.ini",
-            };
-        }
-        my $scanv = $mods_from_scanned{$mod};
-        if (defined($scanv) && $scanv != 0 && version_ne($v, $scanv)) {
-            push @errs, {
-                module  => $mod,
-                req_v   => $v,
-                is_core => $is_core,
-                error   => "Version mismatch between dist.ini ($v) ".
-                    "and from scanned_prereqs ($scanv)",
-                remedy  => "Fix either the code or version in dist.ini",
-            };
-        }
-        unless (defined($scanv) || exists($assume_used{$mod})) {
-            push @errs, {
-                module  => $mod,
-                req_v   => $v,
-                is_core => $is_core,
-                error   => "Unused but listed in dist.ini",
-                remedy  => "Remove from dist.ini",
-            };
-        }
-    }
 
+    # check modules that are specified in dist.ini but extraneous (unused) or
+    # have mismatched version or phase
+    {
+        for my $mod (keys %{$mods_from_ini{Any}}) {
+            my $v = $mods_from_ini{Any}{$mod};
+            next if $mod eq 'perl';
+            $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
+            my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
+            if (!$args{core_prereqs} && $is_core) {
+                push @errs, {
+                    module  => $mod,
+                    req_v   => $v,
+                    is_core => 1,
+                    error   => "Core in perl ($perlv to latest) but ".
+                        "mentioned in dist.ini",
+                    remedy  => "Remove from dist.ini",
+                };
+            }
+            my $scanv = $mods_from_scanned{Any}{$mod};
+            if (defined($scanv) && $scanv != 0 && version_ne($v, $scanv)) {
+                push @errs, {
+                    module  => $mod,
+                    req_v   => $v,
+                    is_core => $is_core,
+                    error   => "Version mismatch between dist.ini ($v) ".
+                        "and from scanned_prereqs ($scanv)",
+                    remedy  => "Fix either the code or version in dist.ini",
+                };
+            }
+            if (defined($mods_from_scanned{Test}{$mod}) &&
+                    !defined($mods_from_scanned{Runtime}{$mod}) &&
+                    !defined($mods_from_ini{Test}{$mod}) &&
+                    defined($mods_from_ini{Runtime}{$mod})) {
+                push @errs, {
+                    module  => $mod,
+                    req_v   => $v,
+                    is_core => $is_core,
+                    error   => "Only used in test phase but listed under runtime prereq in dist.ini",
+                    remedy  => "Move prereq from runtime to test prereq in dist.ini",
+                };
+            }
+            if (defined($mods_from_scanned{Runtime}{$mod}) &&
+                    defined($mods_from_ini{Test}{$mod}) &&
+                    !defined($mods_from_ini{Runtime}{$mod})) {
+                push @errs, {
+                    module  => $mod,
+                    req_v   => $v,
+                    is_core => $is_core,
+                    error   => "Used in runtime phase but listed only under test prereq in dist.ini",
+                    remedy  => "Move prereq from test to runtime prereq in dist.ini",
+                };
+            }
+            unless (defined($scanv) || exists($assume_used{Any}{$mod})) {
+                push @errs, {
+                    module  => $mod,
+                    req_v   => $v,
+                    is_core => $is_core,
+                    error   => "Unused but listed in dist.ini",
+                    remedy  => "Remove from dist.ini",
+                };
+            }
+        }
+    } # END check modules from dist.ini
+
+    # check lumped modules
     {
         no strict 'refs';
         my %lumped_mods;
-        for my $mod (keys %mods_from_ini) {
+        for my $mod (keys %{$mods_from_ini{Any}}) {
             next unless $mod =~ /::Lumped$/;
             my $mod_pm = $mod;
             $mod_pm =~ s!::!/!g;
@@ -336,9 +386,9 @@ sub lint_prereqs {
         last unless %lumped_mods;
         $log->tracef("Checking lumped modules");
         for my $mod (keys %lumped_mods) {
-            my $v = $mods_from_ini{$mod};
+            my $v = $mods_from_ini{Any}{$mod};
             my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
-            if (exists $mods_from_ini{$mod}) {
+            if (exists $mods_from_ini{Any}{$mod}) {
                 push @errs, {
                     module  => $mod,
                     req_v   => $v,
@@ -348,26 +398,37 @@ sub lint_prereqs {
                 };
             }
         }
-    }
+    } # END check lumped modules
 
-    for my $mod (keys %mods_from_scanned) {
-        next if $mod eq 'perl';
-        my $v = $mods_from_scanned{$mod};
-        $log->tracef("Checking mod from scanned: %s (%s)", $mod, $v);
-        my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
-        next if exists $pkgs{$mod};
-        unless (exists($mods_from_ini{$mod}) ||
-                    exists($assume_provided{$mod}) ||
+    # check modules from scanned: check for missing prereqs (scanned/used but
+    # not listed in dist.ini).
+    {
+        for my $mod (keys %{$mods_from_scanned{Any}}) {
+            next if $mod eq 'perl';
+            my $v = $mods_from_scanned{Any}{$mod};
+            $log->tracef("Checking mod from scanned: %s (%s)", $mod, $v);
+            my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
+            next if exists $dist_pkgs{$mod}; # skip modules from same dist
+            unless (exists($mods_from_ini{Any}{$mod}) ||
+                        exists($assume_provided{Any}{$mod}) ||
                         ($args{core_prereqs} ? 0 : $is_core)) {
-            push @errs, {
-                module  => $mod,
-                req_v   => $v,
-                is_core => $is_core,
-                error   => "Used but not listed in dist.ini",
-                remedy  => "Put '$mod=$v' in dist.ini",
-            };
+                my $phase;
+                for (qw/Runtime Test Build Configure Develop/) {
+                    if (defined $mods_from_scanned{$_}{$mod}) {
+                        $phase = $_;
+                        last;
+                    }
+                }
+                push @errs, {
+                    module  => $mod,
+                    req_v   => $v,
+                    is_core => $is_core,
+                    error   => "Used but not listed in dist.ini",
+                    remedy  => "Put '$mod=$v' in dist.ini (e.g. in [Prereqs/${phase}Requires])",
+                };
+            }
         }
-    }
+    } # END check modules from scanned
 
     @errs = sort {prereq_ala_perlancar($a->{module}, $b->{module})} @errs;
 
