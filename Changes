@@ -1,5 +1,12 @@
 Revision history for App-LintPrereqs
 
+0.38    2016-03-01 (PERLANCAR)
+
+	- [Bugfix] Checking for duplicate prereq shouldn't be done using
+	  Config::IOD's allow_duplicate_key=0 because that will disallow
+	  duplicate key in all sections, not just prereq sections.
+
+
 0.37    2016-03-01 (PERLANCAR)
 
 	- [Enhancement] Check some misplaced phase cases: 1) prereqs used only
