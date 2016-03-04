@@ -9,10 +9,13 @@ use warnings;
 use Log::Any::IfLOG qw($log);
 
 use Config::IOD;
+use Fcntl qw(:DEFAULT);
 use File::Find;
 use File::Which;
 use Filename::Backup qw(check_backup_filename);
+use IPC::System::Options 'system', -log=>1;
 use Module::CoreList::More;
+use Proc::ChildError qw(explain_child_error);
 use Scalar::Util 'looks_like_number';
 use Sort::Sub qw(prereq_ala_perlancar);
 use Version::Util qw(version_gt version_ne);
@@ -185,6 +188,18 @@ modules.
 
 _
         },
+        fix => {
+            schema => 'bool',
+            summary => 'Attempt to automatically fix the errors',
+            description => <<'_',
+
+`lint-prereqs` can attempt to automatically fix the errors by
+adding/removing/moving prereqs in `dist.ini`. Not all errors can be
+automatically fixed. When modifying `dist.ini`, a backup in `dist.ini.bak` will
+be created.
+
+_
+        },
     },
 };
 sub lint_prereqs {
@@ -198,6 +213,7 @@ sub lint_prereqs {
     my $ct = do {
         open my($fh), "<", "dist.ini" or die "Can't open dist.ini: $!";
         local $/;
+        binmode $fh, ":utf8";
         ~~<$fh>;
     };
     return [200, "Not run (no-lint-prereqs)"] if $ct =~ /^;!no[_-]lint[_-]prereqs$/m;
@@ -324,6 +340,9 @@ sub lint_prereqs {
                     error   => "Core in perl ($perlv to latest) but ".
                         "mentioned in dist.ini",
                     remedy  => "Remove from dist.ini",
+                    remedy_cmds => [
+                        ["pdrutil", "remove-prereq", $mod],
+                    ],
                 };
             }
             my $scanv = $mods_from_scanned{Any}{$mod};
@@ -347,6 +366,10 @@ sub lint_prereqs {
                     is_core => $is_core,
                     error   => "Only used in test phase but listed under runtime prereq in dist.ini",
                     remedy  => "Move prereq from runtime to test prereq in dist.ini",
+                    remedy_cmds => [
+                        ["pdrutil", "remove-prereq", $mod],
+                        ["pdrutil", "add-prereq", $mod, $v, "--phase", "test"],
+                    ],
                 };
             }
             if (defined($mods_from_scanned{Runtime}{$mod}) &&
@@ -358,6 +381,10 @@ sub lint_prereqs {
                     is_core => $is_core,
                     error   => "Used in runtime phase but listed only under test prereq in dist.ini",
                     remedy  => "Move prereq from test to runtime prereq in dist.ini",
+                    remedy_cmds => [
+                        ["pdrutil", "remove-prereq", $mod],
+                        ["pdrutil", "add-prereq", $mod, $v],
+                    ],
                 };
             }
             unless (defined($scanv) || exists($assume_used{Any}{$mod})) {
@@ -367,6 +394,9 @@ sub lint_prereqs {
                     is_core => $is_core,
                     error   => "Unused but listed in dist.ini",
                     remedy  => "Remove from dist.ini",
+                    remedy_cmds => [
+                        ["pdrutil", "remove-prereq", $mod],
+                    ],
                 };
             }
         }
@@ -427,18 +457,68 @@ sub lint_prereqs {
                     is_core => $is_core,
                     error   => "Used but not listed in dist.ini",
                     remedy  => "Put '$mod=$v' in dist.ini (e.g. in [Prereqs/${phase}Requires])",
+                    remedy_cmds => [
+                        ["pdrutil", "add-prereq", $mod, $v, "--phase", lc($phase)],
+                    ],
                 };
             }
         }
     } # END check modules from scanned
 
+    return [200, "OK", []] unless @errs;
+
     @errs = sort {prereq_ala_perlancar($a->{module}, $b->{module})} @errs;
 
-    my $resmeta = {
-        "cmdline.exit_code" => @errs ? 500-300:0,
-        "table.fields" => [qw/module req_v is_core error remedy/],
-    };
-    [200, @errs ? "Extraneous/missing dependencies" : "OK", \@errs, $resmeta];
+    my $resmeta = {};
+    $resmeta->{'table.fields'} = [qw/module req_v is_core error remedy/];
+
+    if ($args{fix}) {
+        # there is an unfixable error
+        if (grep {!$_->{remedy_cmds}} @errs) {
+            for my $e (@errs) {
+                $e->{remedy} .= " (can't fix automatically)" unless $e->{remedy_cmds};
+            }
+            $resmeta->{'cmdline.exit_code'} = 112;
+        } else {
+            # create dist.ini.bak first
+            if (-f "dist.ini.bak") { unlink "dist.ini.bak" or return [500, "Can't unlink dist.ini.bak: $!"] }
+            sysopen my($fh), "dist.ini.bak", O_WRONLY|O_CREAT|O_EXCL or return [500, "Can't create dist.ini.bak: $!"];
+            binmode $fh, ":utf8"; print $fh $ct; close $fh or return [500, "Can't write to dist.ini.bak: $!"];
+
+            # run the commands
+          FIX:
+            {
+                # add sort-prereqs at the end
+                push @{ $errs[-1]{remedy_cmds} }, ["pdrutil", "sort-prereqs"];
+
+              ERR:
+                for my $e (@errs) {
+                    for my $cmd (@{ $e->{remedy_cmds} }) {
+                        system @$cmd;
+                        if ($?) {
+                            $e->{remedy} .= " (fix failed: ".explain_child_error().")";
+                            $resmeta->{'cmdline.exit_code'} = 1;
+                            # restore dist.ini from backup
+                            rename "dist.ini.bak", "dist.ini";
+                            last FIX;
+                        }
+                    }
+                }
+                for my $e (@errs) {
+                    $e->{remedy} .= " (fixed)";
+                }
+                $resmeta->{'cmdline.exit_code'} = 0;
+                # remove dist.ini.bak
+                #unlink "dist.ini.bak";
+            }
+        }
+        for my $e (@errs) { delete $e->{$_} for qw/remedy_cmds/ }
+        return [200, "OK", \@errs, $resmeta];
+    } else {
+        for my $e (@errs) { delete $e->{$_} for qw/remedy_cmds/ }
+        $resmeta->{'cmdline.exit_code'} = 200;
+        return [200, "OK", \@errs, $resmeta];
+    }
 }
 
 1;
