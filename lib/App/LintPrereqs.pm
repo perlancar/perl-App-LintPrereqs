@@ -286,6 +286,21 @@ sub lint_prereqs {
         },
     }, "lib");
     $log->tracef("Dist packages: %s", \%dist_pkgs);
+    my %test_dist_pkgs;
+    find({
+        #no_chdir => 1,
+        wanted => sub {
+            return unless /\.pm$/;
+            my $pkg = $File::Find::dir;
+            #$log->errorf("TMP:pkg=%s",$pkg);
+            $pkg =~ s!^t/lib/?!!;
+            $pkg =~ s!/!::!g;
+            $pkg .= (length($pkg) ? "::" : "") . $_;
+            $pkg =~ s/\.pm$//;
+            $dist_pkgs{$pkg}++;
+        },
+    }, "t/lib") if -d "t/lib";
+    $log->tracef("Dist packages (in tests): %s", \%test_dist_pkgs);
 
     my %mods_from_scanned = _scan_prereqs(lite=>$args{lite});
     $log->tracef("mods_from_scanned: %s", \%mods_from_scanned);
@@ -441,6 +456,7 @@ sub lint_prereqs {
             $log->tracef("Checking mod from scanned: %s (%s)", $mod, $v);
             my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
             next if exists $dist_pkgs{$mod}; # skip modules from same dist
+            next if exists $test_dist_pkgs{$mod}; # skip test modules from same dist (XXX should check that $mod is only used in tests)
             unless (exists($mods_from_ini{Any}{$mod}) ||
                         exists($assume_provided{Any}{$mod}) ||
                         ($args{core_prereqs} ? 0 : $is_core)) {
