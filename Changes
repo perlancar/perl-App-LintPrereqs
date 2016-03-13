@@ -1,5 +1,10 @@
 Revision history for App-LintPrereqs
 
+0.40    2016-03-13 (PERLANCAR)
+
+	- Recognize test modules from same dist (in t/lib/).
+
+
 0.39    2016-03-04 (PERLANCAR)
 
 	- Add --fix option.
