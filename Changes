@@ -1,5 +1,10 @@
 Revision history for App-LintPrereqs
 
+0.41    2016-03-17 (PERLANCAR)
+
+	- Change backup dist.ini from dist.ini.bak to dist.ini~.
+
+
 0.40    2016-03-13 (PERLANCAR)
 
 	- Recognize test modules from same dist (in t/lib/).
