@@ -195,8 +195,8 @@ _
 
 `lint-prereqs` can attempt to automatically fix the errors by
 adding/removing/moving prereqs in `dist.ini`. Not all errors can be
-automatically fixed. When modifying `dist.ini`, a backup in `dist.ini.bak` will
-be created.
+automatically fixed. When modifying `dist.ini`, a backup in `dist.ini~` will be
+created.
 
 _
         },
@@ -496,10 +496,10 @@ sub lint_prereqs {
             }
             $resmeta->{'cmdline.exit_code'} = 112;
         } else {
-            # create dist.ini.bak first
-            if (-f "dist.ini.bak") { unlink "dist.ini.bak" or return [500, "Can't unlink dist.ini.bak: $!"] }
-            sysopen my($fh), "dist.ini.bak", O_WRONLY|O_CREAT|O_EXCL or return [500, "Can't create dist.ini.bak: $!"];
-            binmode $fh, ":utf8"; print $fh $ct; close $fh or return [500, "Can't write to dist.ini.bak: $!"];
+            # create dist.ini~ first
+            if (-f "dist.ini~") { unlink "dist.ini~" or return [500, "Can't unlink dist.ini~: $!"] }
+            sysopen my($fh), "dist.ini~", O_WRONLY|O_CREAT|O_EXCL or return [500, "Can't create dist.ini~: $!"];
+            binmode $fh, ":utf8"; print $fh $ct; close $fh or return [500, "Can't write to dist.ini~: $!"];
 
             # run the commands
           FIX:
@@ -515,7 +515,7 @@ sub lint_prereqs {
                             $e->{remedy} .= " (fix failed: ".explain_child_error().")";
                             $resmeta->{'cmdline.exit_code'} = 1;
                             # restore dist.ini from backup
-                            rename "dist.ini.bak", "dist.ini";
+                            rename "dist.ini~", "dist.ini";
                             last FIX;
                         }
                     }
@@ -524,8 +524,8 @@ sub lint_prereqs {
                     $e->{remedy} .= " (fixed)";
                 }
                 $resmeta->{'cmdline.exit_code'} = 0;
-                # remove dist.ini.bak
-                #unlink "dist.ini.bak";
+                # remove dist.ini~
+                #unlink "dist.ini~";
             }
         }
         for my $e (@errs) { delete $e->{$_} for qw/remedy_cmds/ }
