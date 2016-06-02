@@ -1,5 +1,11 @@
 Revision history for App-LintPrereqs
 
+0.42    2016-06-03 (PERLANCAR)
+
+        - Allow specifying minimum version of modules in [versions] of
+          lint-prereqs.conf.
+
+
 0.41    2016-03-17 (PERLANCAR)
 
 	- Change backup dist.ini from dist.ini.bak to dist.ini~.
