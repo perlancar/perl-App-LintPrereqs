@@ -158,6 +158,18 @@ make lint-prereqs ignore them:
     [Extras / lint-prereqs / assume-provided]
     Qux::Quux=0
 
+You can also add a `[versions]` section in your `lint-prereqs.conf`
+configuration containing minimum versions that you want for certain modules,
+e.g.:
+
+    [versions]
+    Bencher=0.30
+    Log::Any::IfLOG=0.07
+    ...
+
+then if there is a prereq specified less than the minimum versions,
+`lint-prereqs` will also complain.
+
 _
     args => {
         perl_version => {
@@ -480,6 +492,31 @@ sub lint_prereqs {
             }
         }
     } # END check modules from scanned
+
+    # check minimum versions specified in [versions] in our config
+    {
+        last unless $args{-cmdline_r};
+        my $versions = $args{-cmdline_r}{config}{versions} or last;
+        $log->tracef("Checking minimum versions ...");
+        for my $mod (keys %{$mods_from_ini{Any}}) {
+            next if $mod eq 'perl';
+            my $v = $mods_from_ini{Any}{$mod};
+            my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
+            my $min_v = $versions->{$mod};
+            if (defined($min_v) && version_gt($min_v, $v)) {
+                push @errs, {
+                    module  => $mod,
+                    req_v   => $v,
+                    is_core => $is_core,
+                    error   => "Less than specified minimum version ($min_v) in lint-prereqs.conf",
+                    remedy  => "Increase version to $min_v",
+                    remedy_cmds => [
+                        ["pdrutil", "inc-prereq-version-to", $mod, $min_v],
+                    ],
+                };
+            }
+        }
+    } # END check minimum versions
 
     return [200, "OK", []] unless @errs;
 
