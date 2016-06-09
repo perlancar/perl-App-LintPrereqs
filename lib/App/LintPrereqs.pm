@@ -324,6 +324,12 @@ sub lint_prereqs {
         }
     }
 
+    my $versions;
+    {
+        last unless $args{-cmdline_r};
+        $versions = $args{-cmdline_r}{config}{versions};
+    }
+
     my $perlv; # min perl v to use in x.yyyzzz (numified)format
     if ($args{perl_version}) {
         $log->tracef("Will assume perl %s (via perl_version argument)",
@@ -479,6 +485,8 @@ sub lint_prereqs {
                         last;
                     }
                 }
+                $v = $versions->{$mod}
+                    if $versions->{$mod} && version_gt($versions->{$mod}, $v);
                 push @errs, {
                     module  => $mod,
                     req_v   => $v,
@@ -495,8 +503,7 @@ sub lint_prereqs {
 
     # check minimum versions specified in [versions] in our config
     {
-        last unless $args{-cmdline_r};
-        my $versions = $args{-cmdline_r}{config}{versions} or last;
+        last unless $versions;
         $log->tracef("Checking minimum versions ...");
         for my $mod (keys %{$mods_from_ini{Any}}) {
             next if $mod eq 'perl';
