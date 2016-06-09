@@ -1,5 +1,11 @@
 Revision history for App-LintPrereqs
 
+0.43    2016-06-09 (PERLANCAR)
+
+	- When adding missing prereq, check minimum version in [versions]
+	  and use it.
+
+
 0.42    2016-06-03 (PERLANCAR)
 
         - Allow specifying minimum version of modules in [versions] of
