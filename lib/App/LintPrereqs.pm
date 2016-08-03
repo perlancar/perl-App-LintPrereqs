@@ -66,6 +66,7 @@ sub _scan_prereqs {
             "lib", "bin", "script", "scripts",
             #"sample", "samples", "example", "examples" # decidedly not included
             #"share", # decidedly not included
+            @{ $args{extra_runtime_dirs} // [] },
         ));
         last unless @dirs;
         find(
@@ -79,7 +80,10 @@ sub _scan_prereqs {
     }
 
     {
-        my @dirs = (grep {-d} ("t", "xt"));
+        my @dirs = (grep {-d} (
+            "t", "xt",
+            @{ $args{extra_test_dirs} // [] },
+        ));
         last unless @dirs;
         find(
             sub {
@@ -175,6 +179,16 @@ _
         perl_version => {
             schema => ['str*'],
             summary => 'Perl version to use (overrides scan_prereqs/dist.ini)',
+        },
+        extra_runtime_dirs => {
+            'x.name.is_plural' => 1,
+            schema => ['array*', of=>'str*'],
+            summary => 'Add extra directories to scan for runtime requirements',
+        },
+        extra_test_dirs => {
+            'x.name.is_plural' => 1,
+            schema => ['array*', of=>'str*'],
+            summary => 'Add extra directories to scan for test requirements',
         },
         lite => {
             schema => ['bool*'],
@@ -314,7 +328,11 @@ sub lint_prereqs {
     }, "t/lib") if -d "t/lib";
     $log->tracef("Dist packages (in tests): %s", \%test_dist_pkgs);
 
-    my %mods_from_scanned = _scan_prereqs(lite=>$args{lite});
+    my %mods_from_scanned = _scan_prereqs(
+        lite => $args{lite},
+        extra_runtime_dirs => $args{extra_runtime_dirs},
+        extra_test_dirs    => $args{extra_test_dirs},
+    );
     $log->tracef("mods_from_scanned: %s", \%mods_from_scanned);
 
     if ($mods_from_ini{Any}{perl} && $mods_from_scanned{Any}{perl}) {

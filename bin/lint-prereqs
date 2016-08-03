@@ -1,0 +1,17 @@
+#!perl
+
+# DATE
+# VERSION
+
+use Perinci::CmdLine::Any;
+
+my $cmd = Perinci::CmdLine::Any->new(
+    url => '/App/LintPrereqs/lint_prereqs',
+    log => 1,
+    pass_cmdline_object => 1,
+);
+push @{ $cmd->config_dirs }, ".";
+$cmd->run;
+
+# ABSTRACT:
+# PODNAME:
