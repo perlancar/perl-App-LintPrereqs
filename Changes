@@ -1,5 +1,12 @@
 Revision history for App-LintPrereqs
 
+0.44    2016-08-03 (PERLANCAR)
+
+        - Add options --extra-runtime-dirs, --extra-test-dirs.
+
+        - Add "." (curdir) into config_dirs, so we can easily customize on a per-distro basis.
+
+
 0.43    2016-06-09 (PERLANCAR)
 
 	- When adding missing prereq, check minimum version in [versions]
