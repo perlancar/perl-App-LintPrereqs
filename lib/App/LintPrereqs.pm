@@ -46,11 +46,18 @@ sub _scan_prereqs {
     my %args = @_;
 
     my $scanner = do {
-        if ($args{lite}) {
+        if ($args{scanner} eq 'lite') {
             require Perl::PrereqScanner::Lite;
             my $scanner = Perl::PrereqScanner::Lite->new;
             $scanner->add_extra_scanner('Moose');
             $scanner->add_extra_scanner('Version');
+            $scanner;
+        } elsif ($args{scanner} eq 'nqlite') {
+            require Perl::PrereqScanner::NotQuiteLite;
+            my $scanner = Perl::PrereqScanner::NotQuiteLite->new(
+                parsers  => [qw/:installed -UniversalVersion/],
+                suggests => 1,
+            );
             $scanner;
         } else {
             require Perl::PrereqScanner;
@@ -104,11 +111,26 @@ sub _scan_prereqs {
             unless ($scanres) {
                 $log->tracef("Scanned %s, got nothing", $file);
             }
-            my $reqs = $scanres->{requirements};
-            $log->tracef("Scanned %s, got: %s", $file, [keys %$reqs]);
-            #$log->tracef("TMP:reqs=%s", $reqs);
+
+            # if we use PP::NotQuiteLite, it returns PPN::Context which supports
+            # a 'requires' method to return a CM:Requirements like the other
+            # scanners
+            my $reqs = $scanres->can("requires") ?
+                $scanres->requires->as_string_hash : $scanres->as_string_hash;
+
+            if ($scanres->can("suggests") && (my $sugs = $scanres->suggests)) {
+                # currently it's not clear what makes PP:NotQuiteLite determine
+                # something as a suggests requirement, so we include suggests as
+                # a normal requires requirement.
+                $sugs = $sugs->as_string_hash;
+                for (keys %$sugs) {
+                    $reqs->{$_} ||= $sugs->{$_};
+                }
+            }
+
+            $log->tracef("Scanned %s, got: %s", $file, $reqs);
             for my $req (keys %$reqs) {
-                my $v = $reqs->{$req}{minimum}{original};;
+                my $v = $reqs->{$req};
                 if (exists $res{$phase}{$req}) {
                     $res{$phase}{$req} = $v
                         if version_gt($v, $res{$phase}{$req});
@@ -190,6 +212,24 @@ _
             schema => ['array*', of=>'str*'],
             summary => 'Add extra directories to scan for test requirements',
         },
+        scanner => {
+            schema => ['str*', in=>['regular','lite','nqlite']],
+            default => 'regular',
+            summary => 'Which scanner to use',
+            description => <<'_',
+
+`regular` means `Perl::PrereqScanner` which is PPI-based and is the slowest but
+has the most complete support for Perl syntax.
+
+`lite` means `Perl::PrereqScanner::Lite` has uses an XS-based lexer and is the
+fastest but might miss some Perl syntax (i.e. miss some prereqs) or crash if
+given some weird code.
+
+`nqlite` means `Perl::PrereqScanner::NotQuiteLite` which is faster than
+`regular` but not as fast as `lite`.
+
+_
+        },
         lite => {
             schema => ['bool*'],
             default => 0,
@@ -198,9 +238,12 @@ _
                 'Use Perl::PrereqScanner instead of Perl::PrereqScanner::Lite',
             description => <<'_',
 
+This option is deprecated and has been replaced by `scanner`.
+
 Lite is faster but it might still miss detecting some modules.
 
 _
+            tags => ['deprecated', 'hidden'],
         },
         core_prereqs => {
             schema => ['bool*'],
@@ -329,7 +372,7 @@ sub lint_prereqs {
     $log->tracef("Dist packages (in tests): %s", \%test_dist_pkgs);
 
     my %mods_from_scanned = _scan_prereqs(
-        lite => $args{lite},
+        scanner => $args{lite} ? 'lite' : $args{scanner},
         extra_runtime_dirs => $args{extra_runtime_dirs},
         extra_test_dirs    => $args{extra_test_dirs},
     );
