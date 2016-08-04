@@ -1,5 +1,20 @@
 Revision history for App-LintPrereqs
 
+0.45    2016-08-04 (PERLANCAR)
+
+        - Add support for Perl::PrereqScanner::NotQuiteLite. To select this
+          scanner, use --scanner=nqlite. Currently, both 'suggests' and
+          'requires' from the scanning result are added as 'requires'.
+
+        - Deprecate --lite option and replace it with --scanner. The default is
+          still Perl::PrereqScanner ('regular'). Other possible values are
+          'lite' (Perl::PrereqScanner::Lite) and 'nqlite' mentioned in the
+          previous point.
+
+        - Perl::PrereqScanner::Lite is downgraded as RuntimeRecommends prereq,
+          as is Perl::PrereqScanner::NotQuiteLite.
+
+
 0.44    2016-08-03 (PERLANCAR)
 
         - Add options --extra-runtime-dirs, --extra-test-dirs.
