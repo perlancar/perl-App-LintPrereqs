@@ -157,8 +157,8 @@ not specified), or incorrect (mismatching version between what's specified in
 `dist.ini` vs in source code, incorrect phase like test prereqs specified in
 runtime, etc).
 
-Checking actual usage of prereqs is done using `Perl::PrereqScanner` (or
-`Perl::PrereqScanner::Lite`).
+Checking actual usage of prereqs is done using <pm:Perl::PrereqScanner> (or
+<pm:Perl::PrereqScanner::Lite>).
 
 Sections that will be checked for prereqs include `[Prereqs / *]`, as well as
 `OSPrereqs`, `Extras/lint-prereqs/Assume-*`. Designed to work with prerequisites
@@ -177,9 +177,9 @@ instruct lint_prereqs to assume that the prerequisite is used.
     Baz=0.12
 
 Sometimes there are also prerequisites that are detected by scan_prereqs, but
-are false positives (`Perl::PrereqScanner::Lite` sometimes does this because its
-parser is simpler) or you know are already provided by some other modules. So to
-make lint-prereqs ignore them:
+are false positives (<pm:Perl::PrereqScanner::Lite> sometimes does this because
+its parser is simpler) or you know are already provided by some other modules.
+So to make lint-prereqs ignore them:
 
     [Extras / lint-prereqs / assume-provided]
     Qux::Quux=0
@@ -218,14 +218,14 @@ _
             summary => 'Which scanner to use',
             description => <<'_',
 
-`regular` means `Perl::PrereqScanner` which is PPI-based and is the slowest but
-has the most complete support for Perl syntax.
+`regular` means <pm:Perl::PrereqScanner> which is PPI-based and is the slowest
+but has the most complete support for Perl syntax.
 
-`lite` means `Perl::PrereqScanner::Lite` has uses an XS-based lexer and is the
-fastest but might miss some Perl syntax (i.e. miss some prereqs) or crash if
+`lite` means <pm:Perl::PrereqScanner::Lite> has uses an XS-based lexer and is
+the fastest but might miss some Perl syntax (i.e. miss some prereqs) or crash if
 given some weird code.
 
-`nqlite` means `Perl::PrereqScanner::NotQuiteLite` which is faster than
+`nqlite` means <pm:Perl::PrereqScanner::NotQuiteLite> which is faster than
 `regular` but not as fast as `lite`.
 
 _
