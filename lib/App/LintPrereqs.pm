@@ -597,7 +597,7 @@ sub lint_prereqs {
         # there is an unfixable error
         if (grep {!$_->{remedy_cmds}} @errs) {
             for my $e (@errs) {
-                $e->{remedy} .= " (can't fix automatically)" unless $e->{remedy_cmds};
+                $e->{remedy} = " (CAN'T FIX AUTOMATICALLY) $e->{remedy}" unless $e->{remedy_cmds};
             }
             $resmeta->{'cmdline.exit_code'} = 112;
         } else {
@@ -617,7 +617,7 @@ sub lint_prereqs {
                     for my $cmd (@{ $e->{remedy_cmds} }) {
                         system @$cmd;
                         if ($?) {
-                            $e->{remedy} .= " (fix failed: ".explain_child_error().")";
+                            $e->{remedy} = "(FIX FAILED: ".explain_child_error().") $e->{remedy}";
                             $resmeta->{'cmdline.exit_code'} = 1;
                             # restore dist.ini from backup
                             rename "dist.ini~", "dist.ini";
@@ -626,7 +626,7 @@ sub lint_prereqs {
                     }
                 }
                 for my $e (@errs) {
-                    $e->{remedy} .= " (fixed)";
+                    $e->{remedy} = "(DONE) $e->{remedy}";
                 }
                 $resmeta->{'cmdline.exit_code'} = 0;
                 # remove dist.ini~
