@@ -1,5 +1,13 @@
 Revision history for App-LintPrereqs
 
+0.47    2016-11-25 (PERLANCAR)
+
+	- No functional changes.
+
+	- [ux] When fixing, put DONE/FAILED messages at the beginning of
+	  the remedy to make them stand out more.
+
+
 0.46    2016-09-17 (PERLANCAR)
 
         - No functional changes.
