@@ -329,8 +329,14 @@ sub lint_prereqs {
 
             my $mod = $param;
             if ($phase eq 'Develop' && $rel eq 'Suggests') {
-                # strip extra relationship information, e.g. _SPEC::, _EMBED::
-                $mod =~ s/\A_[A-Z]+:://;
+                # strip extra relationship information in prefix, e.g. _SPEC::, _EMBED::
+                my $extrarel;
+                if ($mod =~ s/\A(_[A-Z]+):://) {
+                    $extrarel = $1;
+                }
+                if (defined $extrarel && $extrarel !~ /\A(_EMBED)\z/) {
+                    next;
+                }
             }
 
             $mods_from_ini{$phase}{$mod}   = $v unless $section =~ /assume-provided/;
