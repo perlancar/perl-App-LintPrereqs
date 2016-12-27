@@ -305,15 +305,17 @@ sub lint_prereqs {
                       )$!ix or next;
         #$log->errorf("TMP: section=%s, %%+=%s", $section, {%+});
 
-        my $phase;
+        my ($phase, $rel);
         if (my $pr = $+{prereqs_phase_rel}) {
-            if ($pr =~ /^(build|configure|develop|runtime|test)/i) {
+            if ($pr =~ /^(build|configure|develop|runtime|test)(\w+)$/i) {
                 $phase = ucfirst(lc($1));
+                $rel = ucfirst(lc($2));
             } else {
                 return [400, "Invalid section '$section' (unknown phase)"];
             }
         } else {
             $phase = "Runtime";
+            $rel = "Requires";
         }
 
         for my $param ($cfg->list_keys($section)) {
@@ -325,9 +327,15 @@ sub lint_prereqs {
             my $dir_s = $dir ? join(" ", @$dir) : "";
             #$log->tracef("section=%s, v=%s, param=%s, directive=%s", $section, $param, $v, $dir_s);
 
-            $mods_from_ini{$phase}{$param}   = $v unless $section =~ /assume-provided/;
-            $assume_provided{$phase}{$param} = $v if     $section =~ /assume-provided/;
-            $assume_used{$phase}{$param}     = $v if     $section =~ /assume-used/ ||
+            my $mod = $param;
+            if ($phase eq 'Develop' && $rel eq 'Suggests') {
+                # strip extra relationship information, e.g. _SPEC::, _EMBED::
+                $mod =~ s/\A_[A-Z]+:://;
+            }
+
+            $mods_from_ini{$phase}{$mod}   = $v unless $section =~ /assume-provided/;
+            $assume_provided{$phase}{$mod} = $v if     $section =~ /assume-provided/;
+            $assume_used{$phase}{$mod}     = $v if     $section =~ /assume-used/ ||
                 $dir_s =~ /^lint[_-]prereqs\s+assume-used\b/m;
         } # for param
     } # for section
