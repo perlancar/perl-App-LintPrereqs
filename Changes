@@ -1,5 +1,14 @@
 Revision history for App-LintPrereqs
 
+0.51    2016-12-28 (PERLANCAR)
+
+	- Remove extra relationship prefix stuffs, replace it with groking
+	  -phase and -relationship/-type in Prereqs sections.
+
+	- [dist] Fix expressing follow-spec prereq relationship with
+	  x_spec.
+
+
 0.50    2016-12-27 (PERLANCAR)
 
 	- [Bugfix] Properly handle extra relationship prefix (_EMBED::,
