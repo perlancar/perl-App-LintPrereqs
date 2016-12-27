@@ -296,7 +296,6 @@ sub lint_prereqs {
     my %mods_from_ini;
     my %assume_used;
     my %assume_provided;
-    my %extrarels;
     for my $section ($cfg->list_sections) {
         $section =~ m!^(
                           osprereqs \s*/\s* .+ |
@@ -308,51 +307,46 @@ sub lint_prereqs {
 
         my ($phase, $rel);
         if (my $pr = $+{prereqs_phase_rel}) {
-            if ($pr =~ /^(build|configure|develop|runtime|test)(\w+)$/i) {
+            if ($pr =~ /^(develop|configure|build|test|runtime|x_\w+)(requires|recommends|suggests|x_\w+)$/i) {
                 $phase = ucfirst(lc($1));
                 $rel = ucfirst(lc($2));
             } else {
-                return [400, "Invalid section '$section' (unknown phase)"];
+                return [400, "Invalid section '$section' (invalid phase/rel $pr)"];
             }
         } else {
             $phase = "Runtime";
             $rel = "Requires";
         }
 
+        my %params;
         for my $param ($cfg->list_keys($section)) {
-            my $v         = $cfg->get_value($section, $param);
+            my $v = $cfg->get_value($section, $param);
+            if ($param =~ /^-phase$/) {
+                $phase = ucfirst(lc($v));
+                next;
+            } elsif ($param =~ /^-(relationship|type)$/) {
+                $rel = ucfirst(lc($v));
+                next;
+            }
+            $params{$param} = $v;
+        }
+        #$log->tracef("phase=%s, rel=%s", $phase, $rel);
+
+        for my $param (sort keys %params) {
+            my $v = $params{$param};
             if (ref($v) eq 'ARRAY') {
                 return [412, "Multiple '$param' prereq lines specified in dist.ini"];
             }
             my $dir = $cfg->get_directive_before_key($section, $param);
             my $dir_s = $dir ? join(" ", @$dir) : "";
-            #$log->tracef("section=%s, v=%s, param=%s, directive=%s", $section, $param, $v, $dir_s);
+            $log->tracef("section=%s, v=%s, param=%s, directive=%s", $section, $param, $v, $dir_s);
 
             my $mod = $param;
-            if ($phase eq 'Develop' && $rel eq 'Suggests') {
-                # strip extra relationship information in prefix, e.g. _SPEC::, _EMBED::
-                my $extrarel;
-                if ($mod =~ s/\A(_[A-Z]+::)//) {
-                    $extrarel = $1;
-                }
-                if (defined $extrarel) {
-                    if ($extrarel eq '_EMBED::') {
-                        #
-                    } elsif ($extrarel eq '_SPEC::') {
-                        $assume_used{$phase}{$mod} = $v;
-                    } elsif ($extrarel eq '_COPYPASTE') {
-                        $assume_used{$phase}{$mod} = $v;
-                    } else {
-                        return [412, "Unknown extra relationship prefix $extrarel"];
-                    }
-                }
-                $extrarels{$mod} = $extrarel;
-            }
-
             $mods_from_ini{$phase}{$mod}   = $v unless $section =~ /assume-provided/;
             $assume_provided{$phase}{$mod} = $v if     $section =~ /assume-provided/;
             $assume_used{$phase}{$mod}     = $v if     $section =~ /assume-used/ ||
-                $dir_s =~ /^lint[_-]prereqs\s+assume-used\b/m;
+                $dir_s =~ /^lint[_-]prereqs\s+assume-used\b/m ||
+                $rel =~ /\A(X_spec|X_copypaste)\z/;
         } # for param
     } # for section
     _create_prereqs_for_Any_phase(\%mods_from_ini);
@@ -448,7 +442,6 @@ sub lint_prereqs {
         for my $mod (keys %{$mods_from_ini{Any}}) {
             my $v = $mods_from_ini{Any}{$mod};
             next if $mod eq 'perl';
-            my $mod0 = ($extrarels{$mod} // '') . $mod;
             $log->tracef("Checking mod from dist.ini: %s (%s)", $mod, $v);
             my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
             if (!$args{core_prereqs} && $is_core) {
@@ -460,7 +453,7 @@ sub lint_prereqs {
                         "mentioned in dist.ini",
                     remedy  => "Remove from dist.ini",
                     remedy_cmds => [
-                        ["pdrutil", "remove-prereq", $mod0],
+                        ["pdrutil", "remove-prereq", $mod],
                     ],
                 };
             }
@@ -486,8 +479,8 @@ sub lint_prereqs {
                     error   => "Only used in test phase but listed under runtime prereq in dist.ini",
                     remedy  => "Move prereq from runtime to test prereq in dist.ini",
                     remedy_cmds => [
-                        ["pdrutil", "remove-prereq", $mod0],
-                        ["pdrutil", "add-prereq", $mod0, $v, "--phase", "test"],
+                        ["pdrutil", "remove-prereq", $mod],
+                        ["pdrutil", "add-prereq", $mod, $v, "--phase", "test"],
                     ],
                 };
             }
@@ -501,8 +494,8 @@ sub lint_prereqs {
                     error   => "Used in runtime phase but listed only under test prereq in dist.ini",
                     remedy  => "Move prereq from test to runtime prereq in dist.ini",
                     remedy_cmds => [
-                        ["pdrutil", "remove-prereq", $mod0],
-                        ["pdrutil", "add-prereq", $mod0, $v],
+                        ["pdrutil", "remove-prereq", $mod],
+                        ["pdrutil", "add-prereq", $mod, $v],
                     ],
                 };
             }
@@ -514,7 +507,7 @@ sub lint_prereqs {
                     error   => "Unused but listed in dist.ini",
                     remedy  => "Remove from dist.ini",
                     remedy_cmds => [
-                        ["pdrutil", "remove-prereq", $mod0],
+                        ["pdrutil", "remove-prereq", $mod],
                     ],
                 };
             }
@@ -556,7 +549,6 @@ sub lint_prereqs {
     {
         for my $mod (keys %{$mods_from_scanned{Any}}) {
             next if $mod eq 'perl';
-            my $mod0 = ($extrarels{$mod} // '') . $mod;
             my $v = $mods_from_scanned{Any}{$mod};
             $log->tracef("Checking mod from scanned: %s (%s)", $mod, $v);
             my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
@@ -581,7 +573,7 @@ sub lint_prereqs {
                     error   => "Used but not listed in dist.ini",
                     remedy  => "Put '$mod=$v' in dist.ini (e.g. in [Prereqs/${phase}Requires])",
                     remedy_cmds => [
-                        ["pdrutil", "add-prereq", $mod0, $v, "--phase", lc($phase)],
+                        ["pdrutil", "add-prereq", $mod, $v, "--phase", lc($phase)],
                     ],
                 };
             }
@@ -594,7 +586,6 @@ sub lint_prereqs {
         $log->tracef("Checking minimum versions ...");
         for my $mod (keys %{$mods_from_ini{Any}}) {
             next if $mod eq 'perl';
-            my $mod0 = ($extrarels{$mod} // '') . $mod;
             my $v = $mods_from_ini{Any}{$mod};
             my $is_core = Module::CoreList::More->is_still_core($mod, $v, $perlv);
             my $min_v = $versions->{$mod};
@@ -606,7 +597,7 @@ sub lint_prereqs {
                     error   => "Less than specified minimum version ($min_v) in lint-prereqs.conf",
                     remedy  => "Increase version to $min_v",
                     remedy_cmds => [
-                        ["pdrutil", "inc-prereq-version-to", $mod0, $min_v],
+                        ["pdrutil", "inc-prereq-version-to", $mod, $min_v],
                     ],
                 };
             }
