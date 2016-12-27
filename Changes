@@ -1,5 +1,11 @@
 Revision history for App-LintPrereqs
 
+0.48    2016-12-27 (PERLANCAR)
+
+	- Grok extra relationship information encoded in module name prefix
+	  in DevelopSuggests dependency, e.g. _SPEC::Rinci, _EMBED::*.
+
+
 0.47    2016-11-25 (PERLANCAR)
 
 	- No functional changes.
