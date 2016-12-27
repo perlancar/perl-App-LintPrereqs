@@ -1,5 +1,14 @@
 Revision history for App-LintPrereqs
 
+0.50    2016-12-27 (PERLANCAR)
+
+	- [Bugfix] Properly handle extra relationship prefix (_EMBED::,
+	  ...).
+
+	- [dist] Moving spec prereq from DevelopRecommends to
+	  DevelopSuggests with _SPEC:: prefix.
+
+
 0.49    2016-12-27 (PERLANCAR)
 
 	- Aside from _EMBED, disregard the other extra relationships.
