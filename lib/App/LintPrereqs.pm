@@ -346,7 +346,7 @@ sub lint_prereqs {
             $assume_provided{$phase}{$mod} = $v if     $section =~ /assume-provided/;
             $assume_used{$phase}{$mod}     = $v if     $section =~ /assume-used/ ||
                 $dir_s =~ /^lint[_-]prereqs\s+assume-used\b/m ||
-                $rel =~ /\A(X_spec|X_copypaste)\z/;
+                $rel =~ /\A(X_spec|X_alt_for|X_copypaste)\z/;
         } # for param
     } # for section
     _create_prereqs_for_Any_phase(\%mods_from_ini);
