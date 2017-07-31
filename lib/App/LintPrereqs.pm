@@ -190,7 +190,7 @@ e.g.:
 
     [versions]
     Bencher=0.30
-    Log::Any::IfLOG=0.07
+    Log::ger=0.19
     ...
 
 then if there is a prereq specified less than the minimum versions,
