@@ -396,11 +396,16 @@ sub lint_prereqs {
     );
     log_trace("mods_from_scanned: %s", \%mods_from_scanned);
 
-    if ($mods_from_ini{Any}{perl} && $mods_from_scanned{Any}{perl}) {
+    if ($mods_from_scanned{Any}{perl}) {
+        return [500, "Perl version specified by source code ($mods_from_scanned{Any}{perl}) ".
+                    "but not specified in dist.ini"] unless $mods_from_ini{Any}{perl};
         if (version_ne($mods_from_ini{Any}{perl}, $mods_from_scanned{Any}{perl})) {
             return [500, "Perl version from dist.ini ($mods_from_ini{Any}{perl}) ".
                         "and scan_prereqs ($mods_from_scanned{Any}{perl}) mismatch"];
         }
+    } else {
+        return [500, "Perl version not specified by source code but specified in dist.ini ".
+                    "($mods_from_ini{Any}{perl})"] if $mods_from_ini{Any}{perl};
     }
 
     my $versions;
