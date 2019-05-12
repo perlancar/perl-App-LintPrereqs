@@ -282,8 +282,8 @@ sub lint_prereqs {
     my $ct = do {
         open my($fh), "<", "dist.ini" or die "Can't open dist.ini: $!";
         local $/;
-        binmode $fh, ":utf8";
-        ~~<$fh>;
+        binmode $fh, ":encoding(utf8)";
+        scalar <$fh>;
     };
     return [200, "Not run (no-lint-prereqs)"] if $ct =~ /^;!no[_-]lint[_-]prereqs$/m;
 
@@ -627,7 +627,7 @@ sub lint_prereqs {
             # create dist.ini~ first
             if (-f "dist.ini~") { unlink "dist.ini~" or return [500, "Can't unlink dist.ini~: $!"] }
             sysopen my($fh), "dist.ini~", O_WRONLY|O_CREAT|O_EXCL or return [500, "Can't create dist.ini~: $!"];
-            binmode $fh, ":utf8"; print $fh $ct; close $fh or return [500, "Can't write to dist.ini~: $!"];
+            binmode $fh, ":encoding(utf8)"; print $fh $ct; close $fh or return [500, "Can't write to dist.ini~: $!"];
 
             # run the commands
           FIX:
