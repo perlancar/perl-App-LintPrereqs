@@ -260,6 +260,7 @@ _
         fix => {
             schema => 'bool',
             summary => 'Attempt to automatically fix the errors',
+            cmdline_aliases => {F=>{}},
             description => <<'_',
 
 `lint-prereqs` can attempt to automatically fix the errors by
