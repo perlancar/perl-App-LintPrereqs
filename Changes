@@ -1,3 +1,9 @@
+0.542   2020-04-18  Released-By: PERLANCAR; Urgency: medium
+
+	- When perl version is specified in source code but not in
+	  dist.ini, we need not fail but add remedy.
+
+
 0.541   2019-12-17  Released-By: PERLANCAR; Urgency: medium
 
 	- [ux] Add -F as shortcut alias for --fix.
