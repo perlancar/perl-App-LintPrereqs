@@ -1,6 +1,8 @@
 package App::LintPrereqs;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -288,6 +290,8 @@ sub lint_prereqs {
     };
     return [200, "Not run (no-lint-prereqs)"] if $ct =~ /^;!no[_-]lint[_-]prereqs$/m;
 
+    my @errs;
+
     my $ciod = Config::IOD->new(
         ignore_unknown_directive => 1,
     );
@@ -397,16 +401,27 @@ sub lint_prereqs {
     );
     log_trace("mods_from_scanned: %s", \%mods_from_scanned);
 
-    if ($mods_from_scanned{Any}{perl}) {
-        return [500, "Perl version specified by source code ($mods_from_scanned{Any}{perl}) ".
-                    "but not specified in dist.ini"] unless $mods_from_ini{Any}{perl};
-        if (version_ne($mods_from_ini{Any}{perl}, $mods_from_scanned{Any}{perl})) {
-            return [500, "Perl version from dist.ini ($mods_from_ini{Any}{perl}) ".
-                        "and scan_prereqs ($mods_from_scanned{Any}{perl}) mismatch"];
+    my $perlv_ini     = $mods_from_ini{Any}{perl};
+    my $perlv_scanned = $mods_from_scanned{Any}{perl};
+    if ($perlv_scanned) {
+        if (!defined $perlv_ini) {
+            push @errs, {
+                module  => 'perl',
+                req_v   => $perlv_scanned,
+                is_core => 1,
+                error   => "perl version specified in source code but not in dist.ini",
+                remedy  => 'Add to dist.ini',
+                remedy_cmds => [
+                    ["pdrutil", "add-prereq", "perl", $perlv_scanned],
+                ],
+            };
+        } elsif (version_ne($perlv_ini, $perlv_scanned)) {
+            return [500, "Perl version from dist.ini ($perlv_ini) ".
+                        "and scan_prereqs ($perlv_scanned) mismatch"];
         }
     } else {
         return [500, "Perl version not specified by source code but specified in dist.ini ".
-                    "($mods_from_ini{Any}{perl})"] if $mods_from_ini{Any}{perl};
+                    "($perlv_ini)"] if $perlv_ini;
     }
 
     my $versions;
@@ -439,8 +454,6 @@ sub lint_prereqs {
             return [500, "Can't parse \$^V ($^V)"];
         }
     }
-
-    my @errs;
 
     # check modules that are specified in dist.ini but extraneous (unused) or
     # have mismatched version or phase
