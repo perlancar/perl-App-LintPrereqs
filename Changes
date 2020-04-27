@@ -1,10 +1,16 @@
-0.542   2020-04-27  Released-By: PERLANCAR; Urgency: low
+0.543   2020-04-27  Released-By: PERLANCAR; Urgency: low
 
         - No functional changes.
 
         - [build] Rebuild with newer Perinci::CmdLine::POD to render a more
           complete usage line of Perinci::CmdLine scripts in POD (now all
           options are listed, not just '[options]').
+
+
+0.542   2020-04-18  Released-By: PERLANCAR; Urgency: medium
+
+	- When perl version is specified in source code but not in
+	  dist.ini, we need not fail but add remedy.
 
 
 0.541   2019-12-17  Released-By: PERLANCAR; Urgency: medium
