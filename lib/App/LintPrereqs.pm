@@ -1,20 +1,16 @@
 package App::LintPrereqs;
 
-# AUTHORITY
-# DATE
-# DIST
-# VERSION
-
 use 5.010001;
 use strict;
 use warnings;
 use Log::ger;
 
 use Config::IOD;
+use Exporter 'import';
 use Fcntl qw(:DEFAULT);
 use File::Find;
 use File::Which;
-use Filename::Backup qw(check_backup_filename);
+use Filename::Type::Backup qw(check_backup_filename);
 use IPC::System::Options 'system', -log=>1;
 use Module::CoreList::More;
 use Proc::ChildError qw(explain_child_error);
@@ -22,9 +18,13 @@ use Scalar::Util 'looks_like_number';
 use Sort::Sub qw(prereq_ala_perlancar);
 use Version::Util qw(version_gt version_ne);
 
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
 our %SPEC;
-require Exporter;
-our @ISA       = qw(Exporter);
+
 our @EXPORT_OK = qw(lint_prereqs);
 
 # create a merged list of prereqs from any phase
@@ -151,7 +151,7 @@ sub _scan_prereqs {
 $SPEC{lint_prereqs} = {
     v => 1.1,
     summary => 'Check extraneous/missing/incorrect prerequisites in dist.ini',
-    description => <<'_',
+    description => <<'MARKDOWN',
 
 lint-prereqs can improve your prereqs specification in `dist.ini` by reporting
 prereqs that are extraneous (specified but unused), missing (used/required but
@@ -198,7 +198,7 @@ e.g.:
 then if there is a prereq specified less than the minimum versions,
 `lint-prereqs` will also complain.
 
-_
+MARKDOWN
     args => {
         perl_version => {
             schema => ['str*'],
@@ -218,7 +218,7 @@ _
             schema => ['str*', in=>['regular','lite','nqlite']],
             default => 'regular',
             summary => 'Which scanner to use',
-            description => <<'_',
+            description => <<'MARKDOWN',
 
 `regular` means <pm:Perl::PrereqScanner> which is PPI-based and is the slowest
 but has the most complete support for Perl syntax.
@@ -230,7 +230,7 @@ given some weird code.
 `nqlite` means <pm:Perl::PrereqScanner::NotQuiteLite> which is faster than
 `regular` but not as fast as `lite`.
 
-_
+MARKDOWN
         },
         lite => {
             schema => ['bool*'],
@@ -238,39 +238,39 @@ _
             summary => 'Use Perl::PrereqScanner::Lite instead of Perl::PrereqScanner',
             "summary.alt.bool.not" =>
                 'Use Perl::PrereqScanner instead of Perl::PrereqScanner::Lite',
-            description => <<'_',
+            description => <<'MARKDOWN',
 
 This option is deprecated and has been replaced by `scanner`.
 
 Lite is faster but it might still miss detecting some modules.
 
-_
+MARKDOWN
             tags => ['deprecated', 'hidden'],
         },
         core_prereqs => {
             schema => ['bool*'],
             default => 1,
             summary => 'Whether or not prereqs to core modules are allowed',
-            description => <<'_',
+            description => <<'MARKDOWN',
 
 If set to 0 (the default), will complain if there are prerequisites to core
 modules. If set to 1, prerequisites to core modules are required just like other
 modules.
 
-_
+MARKDOWN
         },
         fix => {
             schema => 'bool',
             summary => 'Attempt to automatically fix the errors',
             cmdline_aliases => {F=>{}},
-            description => <<'_',
+            description => <<'MARKDOWN',
 
 `lint-prereqs` can attempt to automatically fix the errors by
 adding/removing/moving prereqs in `dist.ini`. Not all errors can be
 automatically fixed. When modifying `dist.ini`, a backup in `dist.ini~` will be
 created.
 
-_
+MARKDOWN
         },
     },
 };
